@@ -5,11 +5,10 @@ from PySide6.QtWidgets import (
     QFrame, QHeaderView
 )
 from PySide6.QtCore import Qt, QTimer, QDateTime, QLocale
-from PySide6.QtGui import QIcon
-
 from src.components.activo_dialog import ActivoDialog
 from src.components.alert_dialog import AlertDialog
 from src.core.api_client import ApiClient
+from utils import icon
 
 
 class ActivosView(QWidget):
@@ -78,7 +77,7 @@ class ActivosView(QWidget):
         self.search_input.returnPressed.connect(self._on_search)
 
         search_action = self.search_input.addAction(
-            QIcon("src/resources/icons/search.svg"),
+            icon("src/resources/icons/search.svg"),
             QLineEdit.TrailingPosition
         )
         search_action.setToolTip("Buscar")
@@ -295,11 +294,11 @@ class ActivosView(QWidget):
 
     def _add_actions(self, row, activo_id):
         edit_btn = QPushButton()
-        edit_btn.setIcon(QIcon("src/resources/icons/edit.svg"))
+        edit_btn.setIcon(icon("src/resources/icons/edit.svg"))
         edit_btn.clicked.connect(lambda: self._edit_activo(activo_id))
 
         delete_btn = QPushButton()
-        delete_btn.setIcon(QIcon("src/resources/icons/delete.svg"))
+        delete_btn.setIcon(icon("src/resources/icons/delete.svg"))
         delete_btn.clicked.connect(lambda: self._delete_activo(activo_id))
 
         w = QWidget()

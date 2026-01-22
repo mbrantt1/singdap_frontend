@@ -9,9 +9,10 @@ from PySide6.QtWidgets import (
     QApplication,
 )
 from PySide6.QtCore import Qt, QPropertyAnimation, QSize, QEasingCurve
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QPixmap
 
 from src.components.alert_dialog import AlertDialog
+from utils import icon, resource_path
 
 
 class Sidebar(QWidget):
@@ -39,11 +40,12 @@ class Sidebar(QWidget):
         self.logo.setObjectName("sidebarLogo")
         self.logo.setAlignment(Qt.AlignCenter)
 
-        pixmap = QPixmap("src/resources/images/logo_gobierno.png")
+        logo_path = resource_path("src/resources/images/logo_gobierno.png")
+        pixmap = QPixmap(str(logo_path))
         if not pixmap.isNull():
             self.logo.setPixmap(
                 pixmap.scaledToWidth(
-                    100,  # tamaño equilibrado
+                    100,
                     Qt.SmoothTransformation
                 )
             )
@@ -109,7 +111,7 @@ class Sidebar(QWidget):
         # ===============================
         self.logout_btn = QPushButton("Cerrar sesión")
         self.logout_btn.setObjectName("sidebarLogout")
-        self.logout_btn.setIcon(QIcon("src/resources/icons/logout.svg"))
+        self.logout_btn.setIcon(icon("src/resources/icons/logout.svg"))
         self.logout_btn.setIconSize(QSize(18, 18))
         self.logout_btn.setCursor(Qt.PointingHandCursor)
         self.logout_btn.setProperty("fullText", "Cerrar sesión")
@@ -139,7 +141,7 @@ class Sidebar(QWidget):
     # ===============================
     def _nav_button(self, text, icon_path, active=False):
         btn = QPushButton(text)
-        btn.setIcon(QIcon(icon_path))
+        btn.setIcon(icon(icon_path))
         btn.setIconSize(QSize(18, 18))
         btn.setCursor(Qt.PointingHandCursor)
 
@@ -203,7 +205,7 @@ class Sidebar(QWidget):
 
         if dialog.exec() == QDialog.Accepted:
             QApplication.quit()
-            
+
     def set_active(self, index: int):
         for i, btn in enumerate(self.nav_buttons):
             btn.setObjectName(
