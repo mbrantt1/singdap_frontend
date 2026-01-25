@@ -6,11 +6,13 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
+from src.components.loading_overlay import LoadingOverlay
 
 
 class UsuariosView(QWidget):
     def __init__(self):
         super().__init__()
+        self.loading_overlay = LoadingOverlay(self)
 
         # ===============================
         # Header
@@ -209,3 +211,8 @@ class UsuariosView(QWidget):
         layout.addWidget(table)
 
         return card
+
+    def resizeEvent(self, event):
+        if hasattr(self, 'loading_overlay'):
+            self.loading_overlay.resize(self.size())
+        super().resizeEvent(event)

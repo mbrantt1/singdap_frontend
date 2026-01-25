@@ -37,6 +37,8 @@ class LoadingOverlay(QWidget):
         
         # Draw Spinner
         painter.translate(self.width() // 2, self.height() // 2)
+        
+        painter.save()
         painter.rotate(self.angle)
         
         pen = QPen(QColor("#004B8D")) # Brand color (Gobierno blue)
@@ -46,6 +48,15 @@ class LoadingOverlay(QWidget):
         
         # Draw arc
         painter.drawArc(-20, -20, 40, 40, 0, 270 * 16)
+        painter.restore()
+        
+        # Draw Text
+        painter.setPen(QColor("#004B8D"))
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        # Position text below the spinner (which is roughly -20 to 20)
+        painter.drawText(-100, 30, 200, 30, Qt.AlignCenter, "Cargando...")
         
         painter.end()
 

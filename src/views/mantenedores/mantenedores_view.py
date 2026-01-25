@@ -3,10 +3,11 @@ from PySide6.QtWidgets import (
     QPushButton, QLineEdit, QFrame, QScrollArea,
     QGridLayout, QListWidget, QListWidgetItem
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QIcon
 
 from src.core.api_client import ApiClient
+from src.components.loading_overlay import LoadingOverlay
 
 
 class MantenedoresView(QWidget):
@@ -14,6 +15,7 @@ class MantenedoresView(QWidget):
         super().__init__()
 
         self.api = ApiClient()
+        self.loading_overlay = LoadingOverlay(self)
 
         # ===============================
         # Title
@@ -131,6 +133,8 @@ class MantenedoresView(QWidget):
 
     def _add_item(self, endpoint):
         print(f"Agregar en {endpoint}")
+        self.loading_overlay.show_loading()
+        QTimer.singleShot(1500, self.loading_overlay.hide_loading)
         # TODO: abrir dialog genérico
 
     def _edit_item(self, item_id, endpoint):
@@ -138,3 +142,8 @@ class MantenedoresView(QWidget):
 
     def _delete_item(self, item_id, endpoint):
         print(f"Eliminar {item_id} en {endpoint}")
+
+    def resizeEvent(self, event):
+        if hasattr(self, 'loading_overlay'):
+            self.loading_overlay.resize(self.size())
+        super().resizeEvent(event)

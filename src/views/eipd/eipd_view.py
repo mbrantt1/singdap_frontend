@@ -10,12 +10,14 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QComboBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
+from src.components.loading_overlay import LoadingOverlay
 
 
 class EipdView(QWidget):
     def __init__(self):
         super().__init__()
+        self.loading_overlay = LoadingOverlay(self)
 
         self.setObjectName("eipdView")
 
@@ -49,6 +51,7 @@ class EipdView(QWidget):
 
         save_btn = QPushButton("Guardar Evaluación EIPD")
         save_btn.setObjectName("primaryButton")
+        save_btn.clicked.connect(self._on_save)
         footer.addWidget(save_btn)
 
         main_layout.addLayout(footer)
@@ -179,3 +182,13 @@ class EipdView(QWidget):
         l.addLayout(f)
         l.addStretch()
         return w
+
+    def _on_save(self):
+        self.loading_overlay.show_loading()
+        print("Guardando EIPD... (simulado)")
+        QTimer.singleShot(2000, self.loading_overlay.hide_loading)
+
+    def resizeEvent(self, event):
+        if hasattr(self, 'loading_overlay'):
+            self.loading_overlay.resize(self.size())
+        super().resizeEvent(event)

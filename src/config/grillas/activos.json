@@ -1,0 +1,166 @@
+{
+    "id": "activos",
+    "titulo": "Inventario de Activos de Datos",
+    "endpoints": {
+        "listado": "/activos/catalogos",
+        "indicadores": "/activos/indicadores",
+        "detalle": "/activos/{id}",
+        "crear": "/activos",
+        "editar": "/activos/{id}",
+        "eliminar": "/activos/{id}"
+    },
+    "campo_id": "activo_id",
+    "columnas": [
+        {
+            "campo_api": "codigo_activo",
+            "etiqueta": "ID",
+            "visible": true,
+            "ancho": 80,
+            "stretch": false,
+            "orden": 1
+        },
+        {
+            "campo_api": "nombre_activo",
+            "etiqueta": "Nombre",
+            "visible": true,
+            "ancho": null,
+            "stretch": true,
+            "orden": 2
+        },
+        {
+            "campo_api": "tipo_activo",
+            "etiqueta": "Tipo",
+            "visible": true,
+            "ancho": 100,
+            "stretch": false,
+            "orden": 3
+        },
+        {
+            "campo_api": "estado_activo",
+            "etiqueta": "Estado",
+            "visible": true,
+            "ancho": 90,
+            "stretch": false,
+            "orden": 4
+        },
+        {
+            "campo_api": "subsecretaria",
+            "etiqueta": "Subsecretaría",
+            "visible": true,
+            "ancho": null,
+            "stretch": true,
+            "orden": 5
+        },
+        {
+            "campo_api": "division",
+            "etiqueta": "División",
+            "visible": true,
+            "ancho": 120,
+            "stretch": false,
+            "orden": 6
+        },
+        {
+            "campo_api": "nivel_confidencialidad",
+            "etiqueta": "Confid.",
+            "visible": true,
+            "ancho": 90,
+            "stretch": false,
+            "orden": 7
+        },
+        {
+            "campo_api": "categoria",
+            "etiqueta": "EIPD",
+            "visible": false,
+            "ancho": 80,
+            "stretch": false,
+            "orden": 8
+        }
+    ],
+    "valor_nulo": "—",
+    "indicadores": [
+        {
+            "titulo": "Total Activos",
+            "campo_api": "total_activos",
+            "orden": 1
+        },
+        {
+            "titulo": "Con datos sensibles",
+            "campo_api": "confidencial",
+            "orden": 2
+        },
+        {
+            "titulo": "Confid. Reservado",
+            "campo_api": "confidencial",
+            "orden": 3
+        }
+    ],
+    "buscador": {
+        "habilitado": true,
+        "placeholder": "Buscar por nombre o ID…",
+        "param_api": "search"
+    },
+    "filtros": [
+        {
+            "id": "subsecretaria",
+            "tipo": "combobox",
+            "etiqueta_defecto": "Todas las Subsecretarías",
+            "endpoint": "/setup/subsecretarias",
+            "cache_key": "catalogo_subsecretarias",
+            "param_api": "subsecretaria_id",
+            "orden": 1
+        },
+        {
+            "id": "tipo",
+            "tipo": "combobox",
+            "etiqueta_defecto": "Todos los tipos",
+            "endpoint": "/catalogos/tipo-activo",
+            "cache_key": "catalogo_tipos",
+            "param_api": "tipo_activo_id",
+            "orden": 2
+        },
+        {
+            "id": "eipd",
+            "tipo": "combobox",
+            "etiqueta_defecto": "Estado EIPD: Todos",
+            "endpoint": "/catalogos/estado-evaluacion",
+            "cache_key": "catalogo_estado_evaluacion",
+            "param_api": "estado_evaluacion_id",
+            "orden": 3
+        }
+    ],
+    "acciones": [
+        {
+            "id": "editar",
+            "icono": "src/resources/icons/edit.svg",
+            "tooltip": "Editar",
+            "tipo": "dialog",
+            "dialog_class": "ActivoDialog",
+            "orden": 1
+        },
+        {
+            "id": "eliminar",
+            "icono": "src/resources/icons/delete.svg",
+            "tooltip": "Eliminar",
+            "tipo": "delete",
+            "confirmacion": {
+                "titulo": "Eliminar activo",
+                "mensaje": "¿Deseas eliminar este activo?",
+                "icono": "src/resources/icons/alert_warning.svg",
+                "boton_confirmar": "Eliminar",
+                "boton_cancelar": "Cancelar"
+            },
+            "orden": 2
+        }
+    ],
+    "boton_nuevo": {
+        "habilitado": true,
+        "texto": "+ Nuevo",
+        "dialog_class": "ActivoDialog"
+    },
+    "paginacion": {
+        "habilitado": true,
+        "tamano_pagina": 7,
+        "texto_anterior": "⟨ Anterior",
+        "texto_siguiente": "Siguiente ⟩"
+    }
+}
