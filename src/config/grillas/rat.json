@@ -1,0 +1,112 @@
+{
+    "id": "rat",
+    "titulo": "Registro de Actividades de Tratamiento (RAT)",
+    "endpoints": {
+        "listado": "/rat/catalogos",
+        "indicadores": "/rat/indicadores",
+        "detalle": "/rat/{id}",
+        "crear": "/rat",
+        "editar": "/rat/{id}",
+        "eliminar": "/rat/{id}"
+    },
+    "campo_id": "rat_id",
+    "columnas": [
+        {
+            "campo_api": "codigo_rat",
+            "etiqueta": "Código",
+            "visible": true,
+            "ancho": 100,
+            "stretch": false,
+            "orden": 1
+        },
+        {
+            "campo_api": "nombre_tratamiento",
+            "etiqueta": "Nombre Tratamiento",
+            "visible": true,
+            "ancho": null,
+            "stretch": true,
+            "orden": 2
+        },
+        {
+            "campo_api": "finalidad",
+            "etiqueta": "Finalidad",
+            "visible": true,
+            "ancho": 150,
+            "stretch": false,
+            "orden": 3
+        },
+        {
+            "campo_api": "base_legal",
+            "etiqueta": "Base Legal",
+            "visible": true,
+            "ancho": 120,
+            "stretch": false,
+            "orden": 4
+        }
+    ],
+    "valor_nulo": "—",
+    "indicadores": [
+        {
+            "titulo": "Total RAT",
+            "campo_api": "total_rat",
+            "orden": 1
+        },
+        {
+            "titulo": "En Revisión",
+            "campo_api": "en_revision",
+            "orden": 2
+        }
+    ],
+    "buscador": {
+        "habilitado": true,
+        "placeholder": "Buscar tratamiento...",
+        "param_api": "search"
+    },
+    "filtros": [
+        {
+            "id": "responsable",
+            "tipo": "combobox",
+            "etiqueta_defecto": "Responsables: Todos",
+            "endpoint": "/setup/subsecretarias",
+            "cache_key": "catalogo_subsecretarias",
+            "param_api": "subsecretaria_id",
+            "ancho": 220,
+            "orden": 1
+        }
+    ],
+    "acciones": [
+        {
+            "id": "editar",
+            "icono": "src/resources/icons/edit.svg",
+            "tooltip": "Editar",
+            "tipo": "dialog",
+            "dialog_class": "RatDialog",
+            "orden": 1
+        },
+        {
+            "id": "eliminar",
+            "icono": "src/resources/icons/delete.svg",
+            "tooltip": "Eliminar",
+            "tipo": "delete",
+            "confirmacion": {
+                "titulo": "Eliminar RAT",
+                "mensaje": "¿Deseas eliminar este registro?",
+                "icono": "src/resources/icons/alert_warning.svg",
+                "boton_confirmar": "Eliminar",
+                "boton_cancelar": "Cancelar"
+            },
+            "orden": 2
+        }
+    ],
+    "boton_nuevo": {
+        "habilitado": true,
+        "texto": "+ Nuevo RAT",
+        "dialog_class": "RatDialog"
+    },
+    "paginacion": {
+        "habilitado": true,
+        "tamano_pagina": 10,
+        "texto_anterior": "⟨ Anterior",
+        "texto_siguiente": "Siguiente ⟩"
+    }
+}

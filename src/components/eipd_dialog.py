@@ -1,0 +1,209 @@
+from PySide6.QtWidgets import (
+    QDialog,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QScrollArea,
+    QFormLayout,
+    QLineEdit,
+    QComboBox,
+)
+from PySide6.QtCore import Qt, QTimer
+from src.components.loading_overlay import LoadingOverlay
+
+
+class EipdDialog(QDialog):
+    def __init__(self, parent=None, eipd_id=None):
+        super().__init__(parent)
+        self.loading_overlay = LoadingOverlay(self)
+
+        self.setObjectName("eipdDialog")
+        
+        self.eipd_id = eipd_id
+        self.is_edit = eipd_id is not None
+        
+        self.setWindowTitle("Evaluación EIPD" if self.is_edit else "Nueva Evaluación EIPD")
+        self.setModal(True)
+        self.resize(900, 700)
+
+        # ===============================
+        # Layout principal
+        # ===============================
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(24, 16, 24, 16)
+        main_layout.setSpacing(16)
+
+        # ===============================
+        # Tabs (mismo estilo ActivoDialog)
+        # ===============================
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("dialogTabs")
+
+        self.tabs.addTab(self._wrap_scroll(self._tab_nivel_1()), "Nivel 1 · RAT")
+        self.tabs.addTab(self._wrap_scroll(self._tab_nivel_2()), "Nivel 2 · Detalle RAT")
+        self.tabs.addTab(self._wrap_scroll(self._tab_nivel_3()), "Nivel 3 · Evaluación")
+        self.tabs.addTab(self._wrap_scroll(self._tab_riesgos()), "Riesgos")
+        self.tabs.addTab(self._wrap_scroll(self._tab_mitigacion()), "Mitigación")
+        self.tabs.addTab(self._wrap_scroll(self._tab_administracion()), "Administración")
+
+        main_layout.addWidget(self.tabs)
+
+        # ===============================
+        # Footer
+        # ===============================
+        footer = QHBoxLayout()
+        footer.addStretch()
+        
+        cancel_btn = QPushButton("Cancelar")
+        cancel_btn.setObjectName("secondaryButton")
+        cancel_btn.clicked.connect(self.reject)
+        
+        save_btn = QPushButton("Guardar Evaluación EIPD")
+        save_btn.setObjectName("primaryButton")
+        save_btn.clicked.connect(self._on_save)
+        
+        footer.addWidget(cancel_btn)
+        footer.addWidget(save_btn)
+
+        main_layout.addLayout(footer)
+
+    # ======================================================
+    # Helpers (idénticos a ActivoDialog)
+    # ======================================================
+
+    def _wrap_scroll(self, widget: QWidget) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setWidget(widget)
+        return scroll
+
+    def _form(self):
+        form = QFormLayout()
+        form.setHorizontalSpacing(24)
+        form.setVerticalSpacing(16)
+        return form
+
+    def _large_input(self, height=120):
+        inp = QLineEdit()
+        inp.setFixedHeight(height)
+        inp.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        inp.setObjectName("formLargeInput")
+        return inp
+
+    def _section(self, title: str):
+        lbl = QLabel(title)
+        lbl.setObjectName("sectionTitle")
+        return lbl
+
+    # ======================================================
+    # Tabs
+    # ======================================================
+
+    def _tab_nivel_1(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        f = self._form()
+
+        f.addRow("Identificación del RAT", QLineEdit())
+        f.addRow("Marco normativo aplicable", QLineEdit())
+        f.addRow("Descripción general del tratamiento", self._large_input())
+        f.addRow("Resultados esperados del tratamiento", self._large_input())
+        f.addRow("Finalidad(es) del tratamiento", self._large_input())
+        f.addRow("Justificación aplicación EIPD", self._large_input())
+
+        l.addLayout(f)
+        l.addStretch()
+        return w
+
+    def _tab_nivel_2(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        f = self._form()
+
+        f.addRow("Categorías de datos personales tratados", self._large_input())
+        f.addRow("Titulares de los datos", self._large_input())
+        f.addRow("Origen y recolección de los datos", self._large_input())
+        f.addRow("Unidades o perfiles con acceso", self._large_input())
+        f.addRow("Diagrama de flujo de datos personales", self._large_input(80))
+        f.addRow("Alcance y exclusiones del análisis", self._large_input())
+        f.addRow("Conclusiones del RAT", self._large_input())
+
+        l.addLayout(f)
+        l.addStretch()
+        return w
+
+    def _tab_nivel_3(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+
+        for title in [
+            "Licitud y Lealtad",
+            "Finalidad",
+            "Proporcionalidad",
+            "Calidad",
+            "Responsabilidad",
+            "Seguridad",
+            "Transparencia e Información",
+            "Confidencialidad",
+            "Coordinación",
+        ]:
+            l.addWidget(self._section(f"{title} – Nivel 3"))
+            f = self._form()
+            f.addRow("Criterios de evaluación", self._large_input())
+            f.addRow("Resumen del ámbito", self._large_input())
+            f.addRow("Nivel de desarrollo", QComboBox())
+            f.addRow("Evaluación de riesgos", QComboBox())
+            l.addLayout(f)
+
+        l.addStretch()
+        return w
+
+    def _tab_riesgos(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        f = self._form()
+
+        f.addRow("Matriz de Riesgos Transversales", self._large_input())
+
+        l.addLayout(f)
+        l.addStretch()
+        return w
+
+    def _tab_mitigacion(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        f = self._form()
+
+        f.addRow("Plan de Mitigación y Seguimiento", self._large_input())
+
+        l.addLayout(f)
+        l.addStretch()
+        return w
+
+    def _tab_administracion(self):
+        w = QWidget()
+        l = QVBoxLayout(w)
+        f = self._form()
+
+        f.addRow("Responsable EIPD", QLineEdit())
+        f.addRow("Fecha de revisión", QLineEdit())
+        f.addRow("Observaciones internas", self._large_input())
+
+        l.addLayout(f)
+        l.addStretch()
+        return w
+
+    def _on_save(self):
+        self.loading_overlay.show_loading()
+        print("Guardando EIPD... (simulado)")
+        # Simulate loading then accept (close with success)
+        QTimer.singleShot(1500, lambda: [self.loading_overlay.hide_loading(), self.accept()])
+
+    def resizeEvent(self, event):
+        if hasattr(self, 'loading_overlay'):
+            self.loading_overlay.resize(self.size())
+        super().resizeEvent(event)

@@ -1,0 +1,117 @@
+{
+    "id": "eipd",
+    "titulo": "Evaluaciones de Impacto (EIPD)",
+    "endpoints": {
+        "listado": "/eipd/catalogos",
+        "indicadores": "/eipd/indicadores",
+        "detalle": "/eipd/{id}",
+        "crear": "/eipd",
+        "editar": "/eipd/{id}",
+        "eliminar": "/eipd/{id}"
+    },
+    "campo_id": "eipd_id",
+    "columnas": [
+        {
+            "campo_api": "codigo_eipd",
+            "etiqueta": "ID",
+            "visible": true,
+            "ancho": 80,
+            "stretch": false,
+            "orden": 1
+        },
+        {
+            "campo_api": "nombre_evaluacion",
+            "etiqueta": "Nombre Evaluación",
+            "visible": true,
+            "ancho": null,
+            "stretch": true,
+            "orden": 2
+        },
+        {
+            "campo_api": "estado",
+            "etiqueta": "Estado",
+            "visible": true,
+            "ancho": 100,
+            "stretch": false,
+            "orden": 3
+        },
+        {
+            "campo_api": "riesgo",
+            "etiqueta": "Riesgo",
+            "visible": true,
+            "ancho": 100,
+            "stretch": false,
+            "orden": 4
+        }
+    ],
+    "valor_nulo": "—",
+    "indicadores": [
+        {
+            "titulo": "Total Evaluaciones",
+            "campo_api": "total_eipd",
+            "orden": 1
+        },
+        {
+            "titulo": "En Proceso",
+            "campo_api": "en_proceso",
+            "orden": 2
+        },
+        {
+            "titulo": "Finalizadas",
+            "campo_api": "finalizadas",
+            "orden": 3
+        }
+    ],
+    "buscador": {
+        "habilitado": true,
+        "placeholder": "Buscar evaluación...",
+        "param_api": "search"
+    },
+    "filtros": [
+        {
+            "id": "estado",
+            "tipo": "combobox",
+            "etiqueta_defecto": "Estados: Todos",
+            "endpoint": "/catalogos/estado-evaluacion",
+            "cache_key": "catalogo_estado_evaluacion",
+            "param_api": "estado_id",
+            "ancho": 200,
+            "orden": 1
+        }
+    ],
+    "acciones": [
+        {
+            "id": "editar",
+            "icono": "src/resources/icons/edit.svg",
+            "tooltip": "Editar",
+            "tipo": "dialog",
+            "dialog_class": "EipdDialog",
+            "orden": 1
+        },
+        {
+            "id": "eliminar",
+            "icono": "src/resources/icons/delete.svg",
+            "tooltip": "Eliminar",
+            "tipo": "delete",
+            "confirmacion": {
+                "titulo": "Eliminar EIPD",
+                "mensaje": "¿Deseas eliminar esta evaluación?",
+                "icono": "src/resources/icons/alert_warning.svg",
+                "boton_confirmar": "Eliminar",
+                "boton_cancelar": "Cancelar"
+            },
+            "orden": 2
+        }
+    ],
+    "boton_nuevo": {
+        "habilitado": true,
+        "texto": "+ Nueva EIPD",
+        "dialog_class": "EipdDialog"
+    },
+    "paginacion": {
+        "habilitado": true,
+        "tamano_pagina": 10,
+        "texto_anterior": "⟨ Anterior",
+        "texto_siguiente": "Siguiente ⟩"
+    }
+}

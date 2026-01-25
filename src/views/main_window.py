@@ -11,6 +11,7 @@ from src.views.activos.activos_view import ActivosView
 from src.views.mantenedores.mantenedores_view import MantenedoresView
 from src.views.usuarios.usuarios_view import UsuariosView
 from src.views.eipd.eipd_view import EipdView
+from src.views.rat.rat_view import RatView
 
 
 class MainWindow(QMainWindow):
@@ -42,13 +43,16 @@ class MainWindow(QMainWindow):
         self.activos_view = ActivosView()
         self.mantenedores_view = MantenedoresView()
         self.usuarios_view = UsuariosView()
+        self.usuarios_view = UsuariosView()
         self.eipd_view = EipdView()
+        self.rat_view = RatView()
 
         # Stack indexes
         self.stack.addWidget(self.activos_view)        # 0
         self.stack.addWidget(self.mantenedores_view)   # 1
         self.stack.addWidget(self.usuarios_view)       # 2
         self.stack.addWidget(self.eipd_view)           # 3
+        self.stack.addWidget(self.rat_view)            # 4
 
         # ===============================
         # Layout
@@ -81,6 +85,11 @@ class MainWindow(QMainWindow):
         # Usuarios / Roles (sidebar index 3)
         self.sidebar.btn_roles.clicked.connect(
             lambda: self._navigate(2, 3)
+        )
+
+        # RAT (sidebar index 4)
+        self.sidebar.btn_rat.clicked.connect(
+            lambda: self._navigate(4, 4)
         )
 
         # ===============================
