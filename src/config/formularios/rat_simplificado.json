@@ -1,0 +1,402 @@
+{
+    "sections": [
+        {
+            "title": "0. Placeholder",
+            "fields": []
+        },
+        {
+            "title": "1. Placeholder",
+            "fields": []
+        },
+        {
+            "title": "2. Descripción del tratamiento",
+            "description": "Defina el tratamiento con el alcance claro.",
+            "fields": [
+                {
+                    "key": "autorizacion_datos_ris",
+                    "label": "Autorización de datos RIS o RISE",
+                    "description": "Seleccione la autorización de datos RIS que corresponde a este tratamiento.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "formulario_ris",
+                            "nombre": "Formulario de autorización RIS"
+                        },
+                        {
+                            "id": "formulario_rise",
+                            "nombre": "Formulario de autorización RISE"
+                        },
+                        {
+                            "id": "no_aplica",
+                            "nombre": "No Aplica"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "descripcion_alcance",
+                    "label": "Descripción y alcance",
+                    "description": "Defina el tratamiento con el alcance claro.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "operaciones_realizadas",
+                    "label": "Operaciones realizadas",
+                    "description": "Describa claramente las operaciones involucradas, por ejemplo, cómo prepara los datos, cómo se extraen...",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "equipos_involucrados",
+                    "label": "Equipos que realizan las operaciones de tratamiento descritas",
+                    "description": "Ingrese el nombre de los equipos involucrados en el tratamiento, debe ser uno como mínimo.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "software_utilizado",
+                    "label": "Aplicaciones/software que utiliza para el tratamiento",
+                    "description": "Pueden ser software como SPSS, STATA, Python, otros. Mencione si utiliza cuadernos de jupiter.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "repositorios_utilizados",
+                    "label": "Repositorios utilizados",
+                    "description": "Considerando los repositorios de almacenamiento, así como donde se alojan los códigos.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "sistemas_plataformas",
+                    "label": "Sistemas y plataformas involucradas",
+                    "description": "Liste o describe los sistemas y plataformas involucrados.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "archivos_adjuntos",
+                    "label": "Adjunte archivos que faciliten el entendimiento del tratamiento",
+                    "description": "Cargue los archivos que apoyen la descripción del tratamiento.",
+                    "type": "file",
+                    "required": true
+                },
+                {
+                    "key": "mecanismo_habilitante",
+                    "label": "Mecanismo habilitante del tratamiento",
+                    "description": "Normativa aplicable al tratamiento (Ley, decretos e instrucción administrativa, otros).",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "ley",
+                            "nombre": "Ley"
+                        },
+                        {
+                            "id": "decretos",
+                            "nombre": "Decretos"
+                        },
+                        {
+                            "id": "administrativa",
+                            "nombre": "Admnistrativa"
+                        },
+                        {
+                            "id": "otros",
+                            "nombre": "Otros"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "nombre_mecanismo",
+                    "label": "Nombre mecanismo",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "consentimiento_titular",
+                    "label": "Consentimiento del titular o habilitación legal",
+                    "description": "Seleccione la opción que corresponda al tratamiento de datos.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "consentimiento_fines",
+                            "nombre": "Consentimiento para uno o varios fines especificos"
+                        },
+                        {
+                            "id": "cumplimiento_obligacion",
+                            "nombre": "Cumplimiento de una obligación legal aplicable al responsable del tratamiento"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "finalidad_tratamiento",
+                    "label": "Finalidad del tratamiento",
+                    "description": "Describir el propósito y fin último del tratamiento.",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "title": "3. Titulares de los datos",
+            "description": "Identificación de los titulares de la información.",
+            "fields": [
+                {
+                    "key": "categorias_destinatarios",
+                    "label": "Categorías de destinatarios",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "instituciones_ris",
+                            "nombre": "Insituciones en convenio RIS"
+                        },
+                        {
+                            "id": "organismos_convenio",
+                            "nombre": "Organismos con convenio"
+                        },
+                        {
+                            "id": "otra",
+                            "nombre": "Otra"
+                        },
+                        {
+                            "id": "no_aplica",
+                            "nombre": "No aplica"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "categorias_datos_personales",
+                    "label": "Categorías de datos personales tratados",
+                    "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
+                    "type": "combo_static",
+                    "multiple": true,
+                    "options": [
+                        {
+                            "id": "identificacion",
+                            "nombre": "Datos de identificación"
+                        },
+                        {
+                            "id": "contacto",
+                            "nombre": "Datos de contacto"
+                        },
+                        {
+                            "id": "socioeconomicos",
+                            "nombre": "Datos socioeconómicos"
+                        },
+                        {
+                            "id": "administrativos",
+                            "nombre": "Datos administrativos"
+                        },
+                        {
+                            "id": "sensibles",
+                            "nombre": "Datos sensibles (especificar)"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "poblaciones_vulnerables",
+                    "label": "Poblaciones especiales o grupos vulnerables",
+                    "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
+                    "type": "combo_static",
+                    "multiple": true,
+                    "options": [
+                        {
+                            "id": "menores",
+                            "nombre": "Menores de edad"
+                        },
+                        {
+                            "id": "mayores",
+                            "nombre": "Personas mayores"
+                        },
+                        {
+                            "id": "discapacidad",
+                            "nombre": "Personas con discapacidad"
+                        },
+                        {
+                            "id": "migrantes",
+                            "nombre": "Migrantes"
+                        },
+                        {
+                            "id": "indigena",
+                            "nombre": "Población indígena"
+                        },
+                        {
+                            "id": "cuidados",
+                            "nombre": "Personas requirentes de cuidados"
+                        },
+                        {
+                            "id": "dependientes",
+                            "nombre": "Personas dependientes"
+                        },
+                        {
+                            "id": "atributos_sensibles",
+                            "nombre": "Atributos sensibles como el sexo y su modificación registral"
+                        },
+                        {
+                            "id": "otra",
+                            "nombre": "Otra (especifique)"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "tipos_datos",
+                    "label": "Tipos de datos",
+                    "description": "Marque la opción que corresponda.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "nominados",
+                            "nombre": "Nominados"
+                        },
+                        {
+                            "id": "seudonimizados",
+                            "nombre": "Seudonimizados"
+                        },
+                        {
+                            "id": "anonimizados",
+                            "nombre": "Anonimizados"
+                        },
+                        {
+                            "id": "agregados",
+                            "nombre": "Agregados"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "origen_datos",
+                    "label": "Origen de datos",
+                    "description": "Seleccione la o las bases de datos del RIS y los medios de recolección.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "registro_ris",
+                            "nombre": "Registro de Informacion Social (RIS)"
+                        },
+                        {
+                            "id": "otra",
+                            "nombre": "Otra"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "medio_recoleccion",
+                    "label": "Medio recoleccion",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "sistema_informatico",
+                            "nombre": "Nombre sistema informatico"
+                        },
+                        {
+                            "id": "ris_web",
+                            "nombre": "RIS Web"
+                        },
+                        {
+                            "id": "nas",
+                            "nombre": "Repositorios NAS"
+                        },
+                        {
+                            "id": "sftp",
+                            "nombre": "Casilla SFTP"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "volumen_datos",
+                    "label": "Volumen aproximado de datos",
+                    "description": "Ingrese un valor aproximado o estimación del número de registros involucrados y del número de archivos.",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "cantidad_archivos",
+                    "label": "Cantidad de archivos involucrados (approx.)",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "decisiones_automatizadas",
+                    "label": "El tratamiento considera decisiones individuales automatizadas",
+                    "description": "Marque la opción que corresponda.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "si",
+                            "nombre": "Sí"
+                        },
+                        {
+                            "id": "no",
+                            "nombre": "No"
+                        }
+                    ],
+                    "required": true
+                }
+            ]
+        },
+        {
+            "title": "4. Identificación Inicial de riesgos",
+            "description": "Identificación preliminar de riesgos del tratamiento.",
+            "fields": [
+                {
+                    "key": "nombre_riesgo",
+                    "label": "Nombre del Riesgo",
+                    "description": "Identificación preliminar de riesgos del tratamiento.",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "descripcion_riesgo",
+                    "label": "Descripción del Riesgo",
+                    "description": "Identificación preliminar de riesgos del tratamiento.",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "title": "5. Conclusión",
+            "description": "Conclusión general del RAT.",
+            "fields": [
+                {
+                    "key": "sintesis_analisis",
+                    "label": "Síntesis del análisis",
+                    "description": "Conclusión general del RAT.",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "corresponde_eipd",
+                    "label": "¿Corresponde aplicar EIPD?",
+                    "description": "Determinación formal.",
+                    "type": "combo_static",
+                    "options": [
+                        {
+                            "id": "si_corresponde",
+                            "nombre": "Sí, corresponde la aplicación de una EIPD"
+                        },
+                        {
+                            "id": "no_requiere",
+                            "nombre": "No, no requiere la aplicación de una EIPD"
+                        }
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "justificacion",
+                    "label": "Justificación",
+                    "description": "Fundamento técnico y normativo de la decisión.",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        }
+    ]
+}

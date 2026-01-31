@@ -149,3 +149,23 @@ class WizardSidebar(QWidget):
     def prev_step(self):
         if self.current_idx > 0:
             self.set_current_step(self.current_idx - 1)
+
+    def add_step(self, title, required_text="0/0 requeridos"):
+        count = len(self.step_widgets)
+        w = WizardStepWidget(count, title, required_text)
+        w.clicked.connect(self._on_step_clicked)
+        
+        # Add before spacer which is the last item
+        self.steps_layout.insertWidget(self.steps_layout.count() - 1, w)
+        self.step_widgets.append(w)
+        
+    def remove_last_step(self):
+        if not self.step_widgets: return
+        w = self.step_widgets.pop()
+        self.steps_layout.removeWidget(w)
+        w.deleteLater()
+        
+        if self.current_idx >= len(self.step_widgets):
+            self.current_idx = len(self.step_widgets) - 1
+            if self.current_idx >= 0:
+                self.set_current_step(self.current_idx)

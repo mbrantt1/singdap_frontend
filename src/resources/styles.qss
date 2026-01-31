@@ -511,13 +511,13 @@ QTabBar::tab:hover:!selected {
 
 /* Forms */
 
-QTextEdit {
+QTextEdit, QPlainTextEdit {
     border: 1px solid #dce3ea;
     border-radius: 10px;
     padding: 8px;
 }
 
-QTextEdit:focus {
+QTextEdit:focus, QPlainTextEdit:focus {
     border: 2px solid #006FB3;
 }
 

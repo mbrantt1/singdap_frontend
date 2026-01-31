@@ -5,9 +5,10 @@ from functools import partial
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QStackedWidget,
     QLabel, QPushButton, QFrame, QScrollArea, QLineEdit, 
-    QComboBox, QFormLayout, QProgressBar
+    QComboBox, QFormLayout, QProgressBar, QDateEdit, QFileDialog, 
+    QTextEdit, QPlainTextEdit
 )
-from PySide6.QtCore import Qt, QTimer, QThreadPool
+from PySide6.QtCore import Qt, QTimer, QThreadPool, QDate
 
 from src.core.api_client import ApiClient
 from src.components.alert_dialog import AlertDialog
@@ -18,6 +19,80 @@ from src.workers.combo_loader import ComboLoaderRunnable
 from src.workers.api_worker import ApiWorker
 from src.services.logger_service import LoggerService
 from src.components.custom_inputs import CheckableComboBox
+
+class FilePickerWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.line_edit = QLineEdit()
+        self.line_edit.setReadOnly(True)
+        self.line_edit.setPlaceholderText("Seleccione un archivo...")
+        
+        self.btn = QPushButton("Examinar")
+        self.btn.clicked.connect(self._choose_file)
+        
+        layout.addWidget(self.line_edit)
+        layout.addWidget(self.btn)
+        
+    def _choose_file(self):
+        fname, _ = QFileDialog.getOpenFileName(self, "Seleccionar Archivo")
+        if fname:
+            self.line_edit.setText(fname)
+            
+    def text(self):
+        return self.line_edit.text()
+        
+    def setText(self, text):
+        self.line_edit.setText(text)
+
+class FileTextWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        
+        self.file_picker = FilePickerWidget()
+        
+        self.text_edit = QTextEdit()
+        self.text_edit.setObjectName("fileTextInfo")
+        self.text_edit.setPlaceholderText("Ingrese descripción o detalles...")
+        self.text_edit.setFixedHeight(100)
+        
+        # Enforce border visibility with specific ID selector
+        self.text_edit.setStyleSheet("""
+            #fileTextInfo {
+                background-color: white;
+                border: 1px solid #94a3b8; /* Darker gray (Slate 400) */
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 13px;
+                color: #0f172a;
+            }
+            #fileTextInfo:focus {
+                border: 2px solid #2563eb;
+            }
+        """)
+        
+        layout.addWidget(self.file_picker)
+        layout.addWidget(self.text_edit)
+        
+    def get_data(self):
+        return {
+            "file": self.file_picker.text(),
+            "text": self.text_edit.toPlainText()
+        }
+        
+    def set_data(self, data):
+        if not data: return
+        if isinstance(data, dict):
+            self.file_picker.setText(data.get("file", ""))
+            self.text_edit.setPlainText(data.get("text", ""))
+        else:
+            # Fallback if single string provided
+            self.text_edit.setPlainText(str(data))
 
 class GenericFormDialog(QDialog):
     def __init__(self, config_path, parent=None, record_id=None):
@@ -55,14 +130,18 @@ class GenericFormDialog(QDialog):
         # Dependency Map: trigger_key -> [dependent_keys]
         self.dependencies = {}
         # Dependency Config: key -> config
-        self.dependency_configs = {}
+        # ... dependency map initialization ...
+        self.visibility_map = {} # source_key -> list of {target_block, rule, key}
+        self.dependency_configs = {} # Was missing too if I removed it? Let's check previously. Yes I removed it.
 
         self._init_ui()
         
         # Async Load
         self.loading_overlay = LoadingOverlay(self)
         QTimer.singleShot(0, self._init_async_load)
-        LoggerService().log_event(f"Abriendo formulario genérico: {title}")
+        
+        title_log = self.config.get("title_edit", "Editar") if self.is_edit else self.config.get("title_new", "Nuevo")
+        LoggerService().log_event(f"Abriendo formulario genérico: {title_log}")
 
     def _init_ui(self):
         # Layout principal (Vertical: Top Header + Body)
@@ -90,8 +169,6 @@ class GenericFormDialog(QDialog):
         
         # Title in Header
         title_text = self.config.get("title_edit", "Editar") if self.is_edit else self.config.get("title_new", "Nuevo")
-        # Prepend Context if available (e.g. SINGDAP / SIGDAP) - Hardcoded for visual match or generic
-        # Utilizing config title as main header
         
         header_title = QLabel(title_text)
         header_title.setStyleSheet("font-size: 24px; font-weight: bold; color: #0f172a;")
@@ -192,21 +269,18 @@ class GenericFormDialog(QDialog):
 
     def _build_section_form(self, section_config):
         w = QWidget()
-        # Main layout for the form section - Vertical
         layout = QVBoxLayout(w)
-        layout.setSpacing(24) # Spacing between field blocks
+        layout.setSpacing(24)
         layout.setContentsMargins(16, 16, 16, 16)
         
         for field in section_config.get("fields", []):
-            # Block for each field
             field_block = QWidget()
             block_layout = QVBoxLayout(field_block)
             block_layout.setContentsMargins(0, 0, 0, 0)
-            block_layout.setSpacing(6) # Spacing between Label-Desc-Input
+            block_layout.setSpacing(6)
             
-            # 1. Label Row (Title + "Obligatorio" badge)
+            # Label
             label_layout = QHBoxLayout()
-            
             label_text = field.get("label", "")
             if field.get("required", False):
                 label_text += " *"
@@ -222,63 +296,178 @@ class GenericFormDialog(QDialog):
                 
             block_layout.addLayout(label_layout)
             
-            # 2. Field Description (Red box equivalent) - NEW
-            # Fallback to test text if not in config, as requested
-            desc_text = field.get("description", "Descripción del Campo - Prueba")
+            # Description
+            desc_text = field.get("description", "")
             if desc_text:
                 desc_lbl = QLabel(desc_text)
                 desc_lbl.setStyleSheet("font-size: 12px; color: #64748b; margin-bottom: 2px;")
                 desc_lbl.setWordWrap(True)
                 block_layout.addWidget(desc_lbl)
             
-            # 3. Widget (Purple box equivalent)
+            # Widget
             widget = self._create_input_widget(field)
-            
-            # Register input
             key = field["key"]
             self.inputs[key] = widget
             
-            # Store dependency info if exists
+            # Dependency & Signals
             if "triggers_reload" in field:
                  self.dependencies[key] = field["triggers_reload"]
-                 # Connect signal
                  if isinstance(widget, QComboBox):
                      widget.currentIndexChanged.connect(partial(self._on_trigger_changed, key))
                      
             if "depends_on" in field:
                  self.dependency_configs[key] = field
             
-            # Connect Validation Signal for Real-time counter
+            # Connect Validation
             if isinstance(widget, QLineEdit):
-                # Use default arg to avoid closure issue if needed, but self is fine
                 widget.textChanged.connect(self._validate_steps_progress)
             elif isinstance(widget, CheckableComboBox):
                 widget.selectionChanged.connect(self._validate_steps_progress)
             elif isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(self._validate_steps_progress)
-
-            block_layout.addWidget(widget)
             
+            # Visibility Logic
+            if "visible_if" in field:
+                rule = field["visible_if"]
+                source_key = rule["field"]
+                
+                if source_key not in self.visibility_map:
+                    self.visibility_map[source_key] = []
+                    
+                self.visibility_map[source_key].append({
+                    "target_block": field_block,
+                    "rule": rule,
+                    "target_key": key
+                })
+                
+                # Check if we need to connect the source widget (if already created)
+                # It might be in a different section or previous in this loop.
+                # Use a deferred connector or check inputs now.
+                source_widget = self.inputs.get(source_key)
+                if source_widget:
+                    self._connect_visibility_trigger(source_key, source_widget)
+                
+                # Default to hidden until validated
+                field_block.setVisible(False)
+            
+            block_layout.addWidget(widget)
             layout.addWidget(field_block)
             
-        layout.addStretch() # Push everything up
+        layout.addStretch()
+        
+        # After building section, try connecting pending visibility triggers
+        # (In case source was in this section)
+        for source_key in self.visibility_map.keys():
+            if source_key in self.inputs:
+                 self._connect_visibility_trigger(source_key, self.inputs[source_key])
+                 # Trigger initial check
+                 self._check_visibility(source_key)
+
         return w
 
+    def _connect_visibility_trigger(self, key, widget):
+        # We need to accept whatever arguments the signal emits (e.g. index for combo) and ignore them
+        try:
+            # Safety check for deleted objects
+            if not widget: return
+            
+            # Robust check for CheckableComboBox
+            is_checkable = isinstance(widget, CheckableComboBox) or widget.__class__.__name__ == "CheckableComboBox"
+            
+            if is_checkable:
+                 if hasattr(widget, "selectionChanged"):
+                     widget.selectionChanged.connect(lambda *args: self._check_visibility(key), Qt.UniqueConnection)
+            
+            elif isinstance(widget, QComboBox):
+                 widget.currentIndexChanged.connect(lambda *args: self._check_visibility(key), Qt.UniqueConnection)
+            
+            elif isinstance(widget, QLineEdit):
+                 widget.textChanged.connect(lambda *args: self._check_visibility(key), Qt.UniqueConnection)
+                
+        except (TypeError, RuntimeError):
+            pass # Already connected, connection failed, or object deleted
 
+    def _check_visibility(self, source_key):
+        if source_key not in self.visibility_map: return
+        
+        # Verify inputs integrity
+        if source_key not in self.inputs: return
+
+        source_widget = self.inputs.get(source_key)
+        if not source_widget: return
+        
+        try:
+            # Get value
+            val = None
+            is_checkable = isinstance(source_widget, CheckableComboBox) or source_widget.__class__.__name__ == "CheckableComboBox"
+
+            if is_checkable:
+                 val = source_widget.currentData()
+            elif isinstance(source_widget, QComboBox):
+                 val = source_widget.currentData()
+            elif isinstance(source_widget, QLineEdit):
+                 val = source_widget.text()
+
+            deps = self.visibility_map[source_key]
+            for dep in deps:
+                rule = dep["rule"]
+                target_block = dep["target_block"]
+                
+                # Check target block existence
+                if not target_block: continue
+
+                # Check condition
+                match = False
+                req_val = rule.get("value")
+                
+                if isinstance(val, list): # Checkable returns list
+                     if req_val in val: match = True
+                else:
+                     if str(val) == str(req_val): match = True
+                
+                target_block.setVisible(match)
+                
+            # Retrigger validation because required fields might have appeared/disappeared
+            self._validate_steps_progress()
+            
+        except RuntimeError:
+            return  # Object deleted
 
     def _create_input_widget(self, field):
         ftype = field.get("type", "text")
         
+        if field.get("control") == "calendar":
+             from PySide6.QtWidgets import QDateEdit
+             from PySide6.QtCore import QDate
+             
+             inp = QDateEdit()
+             inp.setCalendarPopup(True)
+             inp.setDate(QDate.currentDate())
+             inp.setDisplayFormat("dd-MM-yyyy") 
+             return inp
+
         if ftype == "text":
             inp = QLineEdit()
+            inp.setStyleSheet("""
+                QLineEdit {
+                    background-color: white; 
+                    border: 1px solid #94a3b8; 
+                    border-radius: 6px; 
+                    padding: 4px 8px;
+                    color: #0f172a;
+                }
+                QLineEdit:focus {
+                    border: 2px solid #2563eb;
+                }
+            """)
             return inp
             
-        elif ftype == "textarea":
-            inp = QLineEdit()
+            # QPlainTextEdit is imported at top level now
+            inp = QPlainTextEdit()
             height = field.get("height", 120)
             inp.setFixedHeight(height)
-            inp.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            inp.setObjectName("formLargeInput")
+            # Force style directly on widget instance to guarantee visibility
+            inp.setStyleSheet("border: 2px solid #94a3b8; border-radius: 6px; padding: 8px; background-color: white;")
             return inp
             
         elif ftype == "combo" or ftype == "combo_static":
@@ -290,42 +479,158 @@ class GenericFormDialog(QDialog):
                 inp = QComboBox()
                 inp.setPlaceholderText("Seleccione...")
                 
-            # If static options
             if ftype == "combo_static" and "options" in field:
                 for opt in field["options"]:
                     inp.addItem(opt["nombre"], opt["id"])
                     
-                # Fix for New Mode: Start empty
                 if not self.is_edit and not is_multiple:
                      inp.setCurrentIndex(-1)
 
             return inp
             
-        return QLineEdit() # Fallback
+        elif ftype == "file":
+             return FilePickerWidget()
+             
+        elif ftype == "file_textarea":
+             return FileTextWidget()
 
-    # ... in _on_combo_data ...
-    def _on_combo_data(self, combo, data):
-        combo.clear()
-        if data:
-            for item in data:
-                combo.addItem(item["nombre"], item["id"])
-                
-        # Logic for selection state
-        if isinstance(combo, CheckableComboBox):
-             combo.updateText() # Clear
-        else:
-             # Standard ComboBox
-             # If "New" mode, ensure no selection by default
-             if not self.is_edit:
-                 combo.setCurrentIndex(-1)
-                 
-        if self.asset_data:
-            # Re-try setting value if data is already here (Edit mode)
-            self._try_set_values()
+        return QLineEdit()
+
+    def _validate_steps_progress(self):
+        # Iterate all sections
+        sections = self.config.get("sections", [])
+        
+        global_filled = 0
+        global_total = 0
+        
+        for i, section in enumerate(sections):
+            total_req = 0
+            filled_req = 0
             
-    # ... in _try_set_values ...
+            # Identify the page widget for this section to check relative visibility
+            page_widget = self.stack.widget(i)
+            
+            for field in section.get("fields", []):
+                if field.get("required", False):
+                    key = field["key"]
+                    widget = self.inputs.get(key)
+                    
+                    try:
+                        # Check visibility relative to the page (handling hidden tabs)
+                        # If the field block was hidden by logic, isVisibleTo(page) will be False
+                        not_visible = False
+                        if not widget or not page_widget:
+                            not_visible = True
+                        elif not widget.isVisibleTo(page_widget):
+                            not_visible = True
+                            
+                        if not_visible:
+                             continue
+    
+                        total_req += 1
+                        if self._is_field_filled(widget, field):
+                            filled_req += 1
+                    except RuntimeError:
+                        continue # Object deleted during iteration
+            
+            # Update Sidebar Step
+            if i < len(self.sidebar.step_widgets):
+                step_widget = self.sidebar.step_widgets[i]
+                if hasattr(step_widget, "update_required_count"):
+                    try:
+                        step_widget.update_required_count(filled_req, total_req)
+                    except RuntimeError:
+                        pass
+                
+            global_filled += filled_req
+            global_total += total_req
+
+        # Update Global Header Progress
+        percentage = 0
+        if global_total > 0:
+            percentage = int((global_filled / global_total) * 100)
+        else:
+            percentage = 100 
+
+        # Update Bar
+        if hasattr(self, "progress_bar"):
+            try:
+                self.progress_bar.setStyleSheet("""
+                    QProgressBar {
+                        border: none;
+                        background-color: #e2e8f0;
+                        border-radius: 3px;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #0284c7; 
+                        border-radius: 3px;
+                    }
+                """)
+                self.progress_bar.setMaximum(global_total if global_total > 0 else 1)
+                self.progress_bar.setValue(global_filled if global_total > 0 else 1)
+            except RuntimeError:
+                pass
+
+        # Update Label
+        if hasattr(self, "progress_label"):
+            try:
+                self.progress_label.setText(f"Progreso: {percentage}% ({global_filled}/{global_total} campos requeridos)")
+            except RuntimeError:
+                pass
+
+    def _is_field_filled(self, widget, field):
+        if not widget: return False
+        
+        try:
+            # Robust check for CheckableComboBox
+            is_checkable = isinstance(widget, CheckableComboBox) or widget.__class__.__name__ == "CheckableComboBox"
+            
+            if isinstance(widget, QLineEdit):
+                return bool(widget.text().strip())
+                
+            elif isinstance(widget, (QTextEdit, QPlainTextEdit)):
+                return bool(widget.toPlainText().strip())
+                 
+            elif is_checkable:
+                # Check text presence as visual confirmation of selection
+                return bool(widget.lineEdit().text().strip())
+                
+            elif isinstance(widget, QComboBox):
+                if widget.currentIndex() == -1: return False
+                return True
+                
+            elif isinstance(widget, FilePickerWidget):
+                return bool(widget.text().strip())
+                
+            elif isinstance(widget, FileTextWidget):
+                data = widget.get_data()
+                return bool(data["file"].strip())
+        except RuntimeError:
+            return False
+            
+        return False
+
+    def _on_record_data(self, data):
+        self.asset_data = data
+        self._try_set_values()
+        # Trigger validation after loading data
+        self._validate_steps_progress() 
+        self._check_finished()
+
+    def _check_finished(self):
+        self.pending_loads -= 1
+        if self.pending_loads <= 0:
+            self.loading_overlay.hide_loading()
+            # Initial validation for "New" mode (might be 0/X)
+            self._validate_steps_progress()
+
     def _try_set_values(self):
         if not self.asset_data: return
+        
+        # Special first pass: Trigger fields
+        # If we have dependencies, we might need to load them first.
+        # For simplicity in this generic version, we just try to set everything.
+        # If a combo depends on another, setting the parent might trigger the load.
         
         for key, widget in self.inputs.items():
             value = self.asset_data.get(key)
@@ -333,94 +638,41 @@ class GenericFormDialog(QDialog):
             
             if isinstance(widget, QLineEdit):
                 widget.setText(str(value))
-            elif isinstance(widget, CheckableComboBox):
-                 # Expecting list of IDs or single ID
-                 if isinstance(value, list):
-                     widget.setCurrentData(value)
-                 else:
-                     widget.setCurrentData([value])
+            elif isinstance(widget, QDateEdit):
+                # Assume value comes as "yyyy-MM-dd" string from API
+                if value:
+                    d = QDate.fromString(str(value), "yyyy-MM-dd")
+                    if d.isValid():
+                        widget.setDate(d)
+            elif isinstance(widget, FilePickerWidget):
+                widget.setText(str(value))
+            elif isinstance(widget, FileTextWidget):
+                widget.set_data(value)
             elif isinstance(widget, QComboBox):
                 self._set_combo_value(widget, value)
                 
-                # Check triggers
+                # Check if this key triggers others
+                # Force trigger update if needed
                 if key in self.dependencies:
                      self._on_trigger_changed(key, widget.currentIndex())
 
-    # ... in _submit ...
-    def _submit(self):
-        payload = {}
-        for key, widget in self.inputs.items():
-            val = None
-            if isinstance(widget, QLineEdit):
-                text = widget.text().strip()
-                val = text if text else None
-            elif isinstance(widget, CheckableComboBox):
-                # Returns list of IDs
-                val = widget.currentData()
-                # Use empty list or None if empty? usually API expects list
-                if not val: val = []
-            elif isinstance(widget, QComboBox):
-                val = widget.currentData()
-            
-            payload[key] = val
-        
-        # ... rest of submit ...
-
-    def _wrap_step_content(self, content_widget, title_text, desc_text, index, total):
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(32, 32, 32, 32)
-        layout.setSpacing(20)
-        
-        # Header
-        header = QVBoxLayout()
-        t = QLabel(title_text)
-        t.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e293b;")
-        d = QLabel(desc_text)
-        d.setStyleSheet("font-size: 14px; color: #64748b;")
-        d.setWordWrap(True)
-        header.addWidget(t)
-        header.addWidget(d)
-        layout.addLayout(header)
-        
-        # Divider
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("background-color: #e2e8f0;")
-        line.setFixedHeight(1)
-        layout.addWidget(line)
-        
-        # Content
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.NoFrame)
-        scroll.setWidget(content_widget)
-        layout.addWidget(scroll, 1) 
-        
-        # Footer
-        footer = QHBoxLayout()
-        if index > 0:
-            prev_btn = QPushButton("Anterior")
-            prev_btn.setObjectName("secondaryButton")
-            prev_btn.clicked.connect(self.sidebar.prev_step)
-            footer.addWidget(prev_btn)
-        
-        footer.addStretch()
-        
-        if index < total - 1:
-            next_btn = QPushButton("Siguiente")
-            next_btn.setObjectName("primaryButton")
-            next_btn.clicked.connect(self.sidebar.next_step)
-            footer.addWidget(next_btn)
+    def _set_combo_value(self, combo, value):
+        index = combo.findData(value)
+        if index != -1:
+            combo.setCurrentIndex(index)
         else:
-            save_btn = QPushButton("Guardar")
-            save_btn.setObjectName("primaryButton")
-            save_btn.clicked.connect(self._submit)
-            footer.addWidget(save_btn)
-            
-        layout.addLayout(footer)
-        return container
+             # Fallback string match
+             val_str = str(value)
+             for i in range(combo.count()):
+                 if str(combo.itemData(i)) == val_str:
+                     combo.setCurrentIndex(i)
+                     return
+
+
+
+    def _on_load_error(self, error):
+        print(f"Generic Load Error: {error}")
+        self._check_finished()
 
     def _on_step_changed(self, index):
         self.stack.setCurrentIndex(index)
@@ -486,141 +738,18 @@ class GenericFormDialog(QDialog):
             for item in data:
                 combo.addItem(item["nombre"], item["id"])
                 
+        # Logic for selection state
+        if isinstance(combo, CheckableComboBox):
+             combo.updateText() # Clear
+        else:
+             # Standard ComboBox
+             # If "New" mode, ensure no selection by default
+             if not self.is_edit:
+                 combo.setCurrentIndex(-1)
+                 
         if self.asset_data:
-            # Re-try setting value if data is already here
+            # Re-try setting value if data is already here (Edit mode)
             self._try_set_values()
-
-
-
-    def _validate_steps_progress(self):
-        # Iterate all sections
-        sections = self.config.get("sections", [])
-        
-        global_filled = 0
-        global_total = 0
-        
-        for i, section in enumerate(sections):
-            total_req = 0
-            filled_req = 0
-            
-            for field in section.get("fields", []):
-                if field.get("required", False):
-                    total_req += 1
-                    key = field["key"]
-                    widget = self.inputs.get(key)
-                    if self._is_field_filled(widget, field):
-                        filled_req += 1
-            
-            # Update Sidebar Step
-            step_widget = self.sidebar.step_widgets[i]
-            if hasattr(step_widget, "update_required_count"):
-                step_widget.update_required_count(filled_req, total_req)
-                
-            global_filled += filled_req
-            global_total += total_req
-
-        # Update Global Header Progress
-        percentage = 0
-        if global_total > 0:
-            percentage = int((global_filled / global_total) * 100)
-        else:
-            percentage = 100 
-
-        # Update Bar
-        if hasattr(self, "progress_bar"):
-            self.progress_bar.setStyleSheet("""
-                QProgressBar {
-                    border: none;
-                    background-color: #e2e8f0;
-                    border-radius: 3px;
-                }
-                QProgressBar::chunk {
-                    background-color: #0284c7; 
-                    border-radius: 3px;
-                }
-            """)
-            self.progress_bar.setMaximum(global_total if global_total > 0 else 1)
-            self.progress_bar.setValue(global_filled if global_total > 0 else 1)
-
-        # Update Label
-        if hasattr(self, "progress_label"):
-            self.progress_label.setText(f"Progreso: {percentage}% ({global_filled}/{global_total} campos requeridos)")
-
-    def _is_field_filled(self, widget, field):
-        if not widget: return False
-        
-        # Robust check for CheckableComboBox (handling potential import/reload mismatches)
-        is_checkable = isinstance(widget, CheckableComboBox) or widget.__class__.__name__ == "CheckableComboBox"
-        
-        if isinstance(widget, QLineEdit):
-             # Ensure we don't treat CheckableComboBox (which inherits QComboBox -> QWidget) as QLineEdit 
-             # (it keeps an internal lineedit but widget itself is ComboBox)
-             return bool(widget.text().strip())
-             
-        elif is_checkable:
-            # Check text presence as visual confirmation of selection
-            return bool(widget.lineEdit().text().strip())
-            
-        elif isinstance(widget, QComboBox):
-            # Standard ComboBox
-            if widget.currentIndex() == -1: return False
-            return True
-            
-        return False
-
-    def _on_record_data(self, data):
-        self.asset_data = data
-        self._try_set_values()
-        # Trigger validation after loading data
-        self._validate_steps_progress() 
-        self._check_finished()
-
-    def _check_finished(self):
-        self.pending_loads -= 1
-        if self.pending_loads <= 0:
-            self.loading_overlay.hide_loading()
-            # Initial validation for "New" mode (might be 0/X)
-            self._validate_steps_progress()
-
-    def _try_set_values(self):
-        if not self.asset_data: return
-        
-        # Special first pass: Trigger fields
-        # If we have dependencies, we might need to load them first.
-        # For simplicity in this generic version, we just try to set everything.
-        # If a combo depends on another, setting the parent might trigger the load.
-        
-        for key, widget in self.inputs.items():
-            value = self.asset_data.get(key)
-            if value is None: continue
-            
-            if isinstance(widget, QLineEdit):
-                widget.setText(str(value))
-            elif isinstance(widget, QComboBox):
-                self._set_combo_value(widget, value)
-                
-                # Check if this key triggers others
-                # Force trigger update if needed
-                if key in self.dependencies:
-                     self._on_trigger_changed(key, widget.currentIndex())
-
-    def _set_combo_value(self, combo, value):
-        index = combo.findData(value)
-        if index != -1:
-            combo.setCurrentIndex(index)
-        else:
-             # Fallback string match
-             val_str = str(value)
-             for i in range(combo.count()):
-                 if str(combo.itemData(i)) == val_str:
-                     combo.setCurrentIndex(i)
-                     return
-
-
-
-    def _on_load_error(self, error):
-        print(f"Generic Load Error: {error}")
-        self._check_finished()
 
     # ===============================
     # Dependency Logic
@@ -684,6 +813,62 @@ class GenericFormDialog(QDialog):
              if val:
                  self._set_combo_value(combo, val)
                  
+    def _wrap_step_content(self, content_widget, title_text, desc_text, index, total):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(20)
+        
+        # Header
+        header = QVBoxLayout()
+        t = QLabel(title_text)
+        t.setStyleSheet("font-size: 20px; font-weight: bold; color: #1e293b;")
+        d = QLabel(desc_text)
+        d.setStyleSheet("font-size: 14px; color: #64748b;")
+        d.setWordWrap(True)
+        header.addWidget(t)
+        header.addWidget(d)
+        layout.addLayout(header)
+        
+        # Divider
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("background-color: #e2e8f0;")
+        line.setFixedHeight(1)
+        layout.addWidget(line)
+        
+        # Content
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll, 1) 
+        
+        # Footer
+        footer = QHBoxLayout()
+        if index > 0:
+            prev_btn = QPushButton("Anterior")
+            prev_btn.setObjectName("secondaryButton")
+            prev_btn.clicked.connect(self.sidebar.prev_step)
+            footer.addWidget(prev_btn)
+        
+        footer.addStretch()
+        
+        if index < total - 1:
+            next_btn = QPushButton("Siguiente")
+            next_btn.setObjectName("primaryButton")
+            next_btn.clicked.connect(self.sidebar.next_step)
+            footer.addWidget(next_btn)
+        else:
+            save_btn = QPushButton("Guardar")
+            save_btn.setObjectName("primaryButton")
+            save_btn.clicked.connect(self._submit)
+            footer.addWidget(save_btn)
+            
+        layout.addLayout(footer)
+        return container
+
     # ===============================
     # Submit
     # ===============================
@@ -694,6 +879,14 @@ class GenericFormDialog(QDialog):
             if isinstance(widget, QLineEdit):
                 text = widget.text().strip()
                 val = text if text else None
+            elif isinstance(widget, QDateEdit):
+                 # Send as YYYY-MM-DD
+                 val = widget.date().toString("yyyy-MM-dd")
+            elif isinstance(widget, FilePickerWidget):
+                 text = widget.text().strip()
+                 val = text if text else None
+            elif isinstance(widget, FileTextWidget):
+                 val = widget.get_data()
             elif isinstance(widget, QComboBox):
                 val = widget.currentData()
             

@@ -69,12 +69,20 @@
             "orden": 7
         },
         {
+            "campo_api": "responsable",
+            "etiqueta": "Responsable",
+            "visible": true,
+            "ancho": 150,
+            "stretch": false,
+            "orden": 8
+        },
+        {
             "campo_api": "categoria",
             "etiqueta": "EIPD",
             "visible": false,
             "ancho": 80,
             "stretch": false,
-            "orden": 8
+            "orden": 9
         }
     ],
     "valor_nulo": "—",
