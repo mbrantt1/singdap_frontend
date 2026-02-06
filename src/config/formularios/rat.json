@@ -1,5 +1,6 @@
 {
     "endpoint": "/rat",
+    "endpoint_edit_full": true,
     "id_field": "id",
     "title_new": "RAT - Nuevo Registro",
     "title_edit": "RAT - Editar Registro",

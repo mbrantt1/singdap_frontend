@@ -2,117 +2,59 @@
     "id": "rat",
     "titulo": "Registro de Actividades de Tratamiento (RAT)",
     "endpoints": {
-        "listado": "/rat/catalogos",
+        "listado": "/rat",
         "indicadores": "/rat/indicadores",
-        "detalle": "/rat/{id}",
+        "detalle": "/rat/{id}/full",
         "crear": "/rat",
-        "editar": "/rat/{id}",
+        "editar": "/rat/{id}/full",
         "eliminar": "/rat/{id}"
     },
     "campo_id": "rat_id",
     "columnas": [
         {
-            "campo_api": "nombre_rat",
+            "campo_api": "nombre_tratamiento",
             "etiqueta": "Nombre",
             "visible": true,
-            "ancho": null,
             "stretch": true,
             "orden": 1
         },
         {
-            "campo_api": "tipo_rat",
-            "etiqueta": "Tipo",
+            "campo_api": "tipo_tratamiento_nombre", 
+            "etiqueta": "Tipo Tratamiento",
             "visible": true,
-            "ancho": 150,
-            "stretch": false,
+            "ancho": 180,
             "orden": 2
         },
         {
-            "campo_api": "subsecretaria",
+            "campo_api": "subsecretaria_nombre", 
             "etiqueta": "Subsecretaría",
             "visible": true,
-            "ancho": 200,
-            "stretch": false,
+            "ancho": 250,
             "orden": 3
-        },
-        {
-            "campo_api": "division",
-            "etiqueta": "División",
-            "visible": true,
-            "ancho": 100,
-            "stretch": false,
-            "orden": 4
         },
         {
             "campo_api": "estado",
             "etiqueta": "Estado",
             "visible": true,
-            "ancho": 100,
-            "stretch": false,
-            "orden": 5
-        },
-        {
-            "campo_api": "corresponde_eipd",
-            "etiqueta": "Corresponde EIPDP",
-            "visible": true,
-            "ancho": 140,
-            "stretch": false,
-            "orden": 6
-        },
-        {
-            "campo_api": "fecha_aprobacion",
-            "etiqueta": "Fecha aprobación",
-            "visible": true,
             "ancho": 120,
-            "stretch": false,
-            "orden": 7
+            "orden": 4
+        },
+        {
+            "campo_api": "fecha_creacion",
+            "etiqueta": "Fecha Creación",
+            "visible": true,
+            "ancho": 150,
+            "orden": 5
         }
     ],
-    "valor_nulo": "—",
     "indicadores": [
-        {
-            "titulo": "Total RAT",
-            "campo_api": "total_rat",
-            "orden": 1
-        },
-        {
-            "titulo": "En Revisión",
-            "campo_api": "en_revision",
-            "orden": 2
-        }
-    ],
-    "buscador": {
-        "habilitado": true,
-        "placeholder": "Buscar tratamiento...",
-        "param_api": "search"
-    },
-    "filtros": [
-        {
-            "id": "subsecretaria",
-            "tipo": "combobox",
-            "etiqueta_defecto": "Subsecretarías: Todas",
-            "endpoint": "/setup/subsecretarias",
-            "cache_key": "catalogo_subsecretarias",
-            "param_api": "subsecretaria_id",
-            "ancho": 220,
-            "orden": 1
-        },
-        {
-            "id": "estado",
-            "tipo": "combobox",
-            "etiqueta_defecto": "Estados: Todos",
-            "endpoint": "/catalogos/estado-rat",
-            "cache_key": "catalogo_estado_rat",
-            "param_api": "estado_id",
-            "ancho": 200,
-            "orden": 2
-        }
+        { "titulo": "Total RAT", "campo_api": "total_rat", "orden": 1 },
+        { "titulo": "En Revisión", "campo_api": "en_revision", "orden": 2 }
     ],
     "acciones": [
         {
             "id": "editar",
             "icono": "src/resources/icons/edit.svg",
-            "tooltip": "Editar",
             "tipo": "dialog",
             "dialog_class": "RatDialog",
             "orden": 1
@@ -120,14 +62,10 @@
         {
             "id": "eliminar",
             "icono": "src/resources/icons/delete.svg",
-            "tooltip": "Eliminar",
             "tipo": "delete",
             "confirmacion": {
                 "titulo": "Eliminar RAT",
-                "mensaje": "¿Deseas eliminar este registro?",
-                "icono": "src/resources/icons/alert_warning.svg",
-                "boton_confirmar": "Eliminar",
-                "boton_cancelar": "Cancelar"
+                "mensaje": "¿Deseas eliminar este registro?"
             },
             "orden": 2
         }

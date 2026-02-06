@@ -692,15 +692,31 @@ class GenericGridView(QWidget):
         if confirm.exec():
             try:
                 endpoint = self.config["endpoints"]["eliminar"].replace("{id}", str(record_id))
-                self.api.delete(endpoint)
                 
+                # --- SOLUCIÓN ERROR 401 ---
+                # Creamos un cliente NUEVO para asegurar que tenga el token actual.
+                # 'self.api' puede haber quedado obsoleto si se creó antes del login.
+                client = ApiClient() 
+                response = client.delete(endpoint)
+                
+                # Verificación extra por si el backend devuelve error lógico en 200 OK
+                if isinstance(response, dict) and response.get("status") == "error":
+                    raise Exception(response.get("message", "Error desconocido"))
+
                 LoggerService().log_event(f"Usuario eliminó registro ID: {record_id} en {self.config['id']}")
                 self._reload_all()
+                
             except Exception as e:
+                msg = str(e)
+                # Parseo detallado si es un error HTTP
+                if hasattr(e, 'response') and e.response is not None:
+                    msg = f"Error del servidor ({e.response.status_code}): {e.response.text}"
+                
                 LoggerService().log_error(f"Error eliminando ID: {record_id}", e)
+                
                 AlertDialog(
                     title="Error", 
-                    message=str(e), 
+                    message=msg, 
                     icon_path="src/resources/icons/alert_error.svg", 
                     confirm_text="Ok", 
                     parent=self

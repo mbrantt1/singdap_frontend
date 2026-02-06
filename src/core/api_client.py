@@ -1,3 +1,5 @@
+import base64
+import json
 import requests
 from src.config.settings import API_BASE_URL
 
@@ -22,6 +24,31 @@ class ApiClient:
 
     def set_token(self, token: str):
         self.token = token
+    
+    def _decode_token(self):
+        if not self.token:
+            return {}
+
+        try:
+            payload_part = self.token.split(".")[1]
+            padded = payload_part + "=" * (-len(payload_part) % 4)
+            decoded = base64.urlsafe_b64decode(padded)
+            return json.loads(decoded)
+        except Exception:
+            return {}
+        
+    @property
+    def roles(self):
+        payload = self._decode_token()
+        return payload.get("rol", [])
+
+    @property
+    def is_admin(self):
+        return "ADMIN" in self.roles
+
+    @property
+    def is_auditor(self):
+        return "AUDITOR" in self.roles
     
     def set_user_id(self, user_id: str):
         self.user_id = user_id
@@ -70,7 +97,7 @@ class ApiClient:
     # ===============================
     
     def delete(self, endpoint):
-        r = requests.delete(self.base_url + endpoint)
+        r = requests.delete(self.base_url + endpoint, headers=self._headers())
         r.raise_for_status()
         return r.json() if r.content else None
     
@@ -79,6 +106,6 @@ class ApiClient:
     # ===============================
     def put(self, endpoint: str, payload: dict):
         url = f"{self.base_url}{endpoint}"
-        response = requests.put(url, json=payload)
+        response = requests.put(url, json=payload, headers=self._headers())
         response.raise_for_status()
         return response.json()

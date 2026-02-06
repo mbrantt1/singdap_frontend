@@ -240,10 +240,11 @@
                 {
                     "key": "categorias_datos_inst",
                     "label": "Categorías de datos personales tratados",
-                    "description": "Seleccione la opción que corresponda al tratamiento de datos.",
+                    "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
                     "type": "combo",
-                    "source": "/catalogos/rat/categorias-datos-personales",
-                    "cache_key": "catalogo_rat_categorias_datos_personales",
+                    "multiple": true,
+                    "source": "/catalogos/rat/categoria-datos-personales",
+                    "cache_key": "catalogo_rat_categoria_datos_personales",
                     "required": true
                 },
                 {
@@ -252,8 +253,8 @@
                     "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
                     "type": "combo",
                     "multiple": true,
-                    "source": "/catalogos/rat/poblacion_especial",
-                    "cache_key": "catalogo_rat_poblacion_especial",
+                    "source": "/catalogos/rat/poblacion-especial",
+                    "cache_key": "catalogo_rat_poblacion-especial",
                     "required": true
                 },
                 {
@@ -296,16 +297,16 @@
                 },
                 {
                     "key": "decisiones_automatizadas",
-                    "label": "El tratamiento considera decisiones individuales automatizadas, incluida la elaboración de perfiles",
+                    "label": "El tratamiento considera decisiones individuales automatizadas",
                     "description": "Marque la opción que corresponda.",
                     "type": "combo_static",
                     "options": [
                         {
-                            "id": true,
-                            "nombre": "Si"
+                            "id": "si",
+                            "nombre": "Sí"
                         },
                         {
-                            "id": false,
+                            "id": "no",
                             "nombre": "No"
                         }
                     ],
@@ -452,18 +453,18 @@
                     "type": "combo_static",
                     "options": [
                         {
-                            "id": true,
+                            "id": "si_corresponde",
                             "nombre": "Sí, corresponde la aplicación de una EIPD"
                         },
                         {
-                            "id": false,
+                            "id": "no_requiere",
                             "nombre": "No, no requiere la aplicación de una EIPD"
                         }
                     ],
                     "required": true
                 },
                 {
-                    "key": "justificacion_eipd",
+                    "key": "justificacion",
                     "label": "Justificación",
                     "description": "Fundamento técnico y normativo de la decisión.",
                     "type": "textarea",

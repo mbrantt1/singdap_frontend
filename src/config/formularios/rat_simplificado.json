@@ -121,8 +121,8 @@
                     "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
                     "type": "combo",
                     "multiple": true,
-                    "source": "/catalogos/rat/categorias-datos-personales",
-                    "cache_key": "catalogo_rat_categorias_datos_personales",
+                    "source": "/catalogos/rat/categoria-datos-personales",
+                    "cache_key": "catalogo_rat_categoria_datos_personales",
                     "required": true
                 },
                 {
@@ -131,8 +131,8 @@
                     "description": "Seleccione la o las opciones que correspondan al tratamiento de datos (Selección multiple).",
                     "type": "combo",
                     "multiple": true,
-                    "source": "/catalogos/rat/poblacion_especial",
-                    "cache_key": "catalogo_rat_poblacion_especial",
+                    "source": "/catalogos/rat/poblacion-especial",
+                    "cache_key": "catalogo_rat_poblacion-especial",
                     "required": true
                 },
                 {

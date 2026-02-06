@@ -648,6 +648,29 @@ class GenericFormDialog(QDialog):
                 widget.setText(str(value))
             elif isinstance(widget, FileTextWidget):
                 widget.set_data(value)
+            elif isinstance(widget, CheckableComboBox):
+                # value puede venir como JSON string o list
+                if isinstance(value, str):
+                    try:
+                        value = json.loads(value)
+                    except Exception:
+                        value = []
+
+                if not isinstance(value, list):
+                    value = []
+
+                # Marcar checks según itemData
+                for i in range(widget.count()):
+                    item_data = widget.itemData(i)
+                    item = widget.model().item(i, 0)
+
+                    if item_data in value:
+                        item.setCheckState(Qt.Checked)
+                    else:
+                        item.setCheckState(Qt.Unchecked)
+
+                widget.updateText()
+
             elif isinstance(widget, QComboBox):
                 self._set_combo_value(widget, value)
                 
@@ -725,7 +748,11 @@ class GenericFormDialog(QDialog):
 
     def _start_record_loader(self):
         endpoint_base = self.config.get("endpoint")
-        url = f"{endpoint_base}/{self.record_id}"
+        # 🔑 Soporte opcional para endpoint /full en edición
+        if self.is_edit and self.config.get("endpoint_edit_full"):
+            url = f"{endpoint_base}/{self.record_id}/full"
+        else:
+            url = f"{endpoint_base}/{self.record_id}"
         
         worker = ApiWorker(lambda: self.api.get(url), parent=self)
         worker.finished.connect(self._on_record_data)
