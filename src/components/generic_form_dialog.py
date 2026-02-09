@@ -21,6 +21,32 @@ from src.workers.api_worker import ApiWorker
 from src.services.logger_service import LoggerService
 from src.components.custom_inputs import CheckableComboBox
 
+EIPD_AMBITOS = [
+    "Licitud y Lealtad",
+    "Finalidad",
+    "Proporcionabilidad",
+    "Calidad",
+    "Responsabilidad",
+    "Seguridad",
+    "Transparencia e Información",
+    "Confidencialidad",
+    "Coordinación"
+]
+
+AMBITO_CODES = {
+    "Licitud y Lealtad": "LICITUD",
+    "Finalidad": "FINALIDAD",
+    "Proporcionabilidad": "PROPORCIONABILIDAD",
+    "Calidad": "CALIDAD",
+    "Responsabilidad": "RESPONSABILIDAD",
+    "Seguridad": "SEGURIDAD",
+    "Transparencia e Información": "TRANSPARENCIA",
+    "Confidencialidad": "CONFIDENCIALIDAD",
+    "Coordinación": "COORDINACION"
+}
+
+AMBITO_REVERSE_CODES = {v: k for k, v in AMBITO_CODES.items()}
+
 class FilePickerWidget(QWidget):
     def __init__(self, parent=None):
         screen = QApplication.primaryScreen().availableGeometry()
@@ -500,14 +526,6 @@ class GenericFormDialog(QDialog):
             """)
             return inp
             
-            # QPlainTextEdit is imported at top level now
-            inp = QPlainTextEdit()
-            height = field.get("height", 120)
-            inp.setFixedHeight(height)
-            # Force style directly on widget instance to guarantee visibility
-            inp.setStyleSheet("border: 2px solid #94a3b8; border-radius: 6px; padding: 8px; background-color: white;")
-            return inp
-            
         elif ftype == "combo" or ftype == "combo_static":
             is_multiple = field.get("multiple", False)
             
@@ -533,7 +551,9 @@ class GenericFormDialog(QDialog):
              return FileTextWidget()
          
         elif ftype == "risk_matrix":
-            return RiskMatrixWidget()
+            w = RiskMatrixWidget()
+            w.preload_ambitos(EIPD_AMBITOS)
+            return w
     
         return QLineEdit()
 
@@ -652,11 +672,84 @@ class GenericFormDialog(QDialog):
         return False
 
     def _on_record_data(self, data):
+        # EIPD Flattening Logic
+        if self.config.get("endpoint") == "/eipd":
+            data = self._flatten_eipd_data(data)
+
         self.asset_data = data
         self._try_set_values()
         # Trigger validation after loading data
         self._validate_steps_progress() 
         self._check_finished()
+
+    def _flatten_eipd_data(self, data):
+        """
+        Transforms the nested EIPD structure (ambitos[], riesgos[]) 
+        back into the flat key-value structure required by the form widgets.
+        """
+        flat_data = data.copy()
+        
+        # 1. Map Ambitos (List -> Flat Fields)
+        # We need to know the prefixes. We can use AMBITO_CODES reverse manually or helper.
+        # Prefixes used in _build__eipd_payload were: licitud, finalidad, etc.
+        
+        prefix_map_reverse = {
+            "LICITUD": "licitud",
+            "FINALIDAD": "finalidad",
+            "PROPORCIONABILIDAD": "proporcionabilidad",
+            "CALIDAD": "calidad",
+            "RESPONSABILIDAD": "responsabilidad",
+            "SEGURIDAD": "seguridad",
+            "TRANSPARENCIA": "transparencia",
+            "CONFIDENCIALIDAD": "confidencialidad",
+            "COORDINACION": "coordinacion"
+        }
+        
+        ambitos = data.get("ambitos", [])
+        for ambito in ambitos:
+            code = ambito.get("ambito_codigo")
+            if code: code = code.upper() # Ensure uppercase for lookup
+            prefix = prefix_map_reverse.get(code)
+            if not prefix: continue
+            
+            # Map fields
+            flat_data[f"{prefix}_criterios"] = ambito.get("criterios_evaluacion")
+            flat_data[f"{prefix}_resumen"] = ambito.get("resumen")
+            
+            # Combos (prob, imp) - stored as IDs usually. 
+            # In the provided JSON, "probabilidad" is "maximo" (string ID).
+            # "nivel" is "Medio".
+            flat_data[f"{prefix}_probabilidad"] = ambito.get("probabilidad")
+            flat_data[f"{prefix}_impacto"] = ambito.get("impacto")
+            
+            # Note: 'nivel' might be a calculated label in UI, usually not an input we set directly 
+            # unless there is a read-only field for it.
+            
+        # 2. Map Riesgos (List -> Matrix Data)
+        # RiskMatrixWidget expects a list of dicts with 'ambito' (display name)
+        riesgos = data.get("riesgos", [])
+        matrix_data = []
+        
+        # We need code -> Display Name
+        code_to_name = {v: k for k, v in AMBITO_CODES.items()}
+        
+        for r in riesgos:
+            code = r.get("ambito_codigo")
+            if code: code = code.upper() # Ensure uppercase for lookup
+            name = code_to_name.get(code)
+            if not name: continue
+            
+            row = r.copy()
+            row["ambito"] = name # Required by RiskMatrixWidget to find the row
+            matrix_data.append(row)
+            
+        flat_data["matriz_riesgos"] = matrix_data
+        
+        # 3. Base Fields
+        # flat_data["identificacion_rat_catalogo"] should be set to rat_id
+        flat_data["identificacion_rat_catalogo"] = data.get("rat_id")
+        
+        return flat_data
 
     def _check_finished(self):
         self.pending_loads -= 1
@@ -711,6 +804,9 @@ class GenericFormDialog(QDialog):
                         item.setCheckState(Qt.Unchecked)
 
                 widget.updateText()
+
+            elif isinstance(widget, RiskMatrixWidget):
+                widget.set_data(value)
 
             elif isinstance(widget, QComboBox):
                 self._set_combo_value(widget, value)
@@ -941,27 +1037,11 @@ class GenericFormDialog(QDialog):
     # Submit
     # ===============================
     def _submit(self):
-        payload = {}
-        for key, widget in self.inputs.items():
-            val = None
-            if isinstance(widget, QLineEdit):
-                text = widget.text().strip()
-                val = text if text else None
-            elif isinstance(widget, QDateEdit):
-                 # Send as YYYY-MM-DD
-                 val = widget.date().toString("yyyy-MM-dd")
-            elif isinstance(widget, FilePickerWidget):
-                 text = widget.text().strip()
-                 val = text if text else None
-            elif isinstance(widget, FileTextWidget):
-                 val = widget.get_data()
-            elif isinstance(widget, QComboBox):
-                val = widget.currentData()
-            
-            payload[key] = val
-        
-        # Inject user id (hardcoded for now as in original)
-        payload["creado_por_usuario_id"] = "e13f156d-4bde-41fe-9dfa-9b5a5478d257"
+        # Determine payload based on form type
+        if self.config.get("endpoint") == "/eipd":
+             payload = self._build_eipd_payload()
+        else:
+             payload = self._build_generic_payload()
         
         endpoint = self.config.get("endpoint")
         
@@ -994,6 +1074,144 @@ class GenericFormDialog(QDialog):
                 confirm_text="Aceptar",
                 parent=self
             ).exec()
+
+    def _build_generic_payload(self):
+        payload = {}
+        for key, widget in self.inputs.items():
+            val = None
+            if isinstance(widget, QLineEdit):
+                text = widget.text().strip()
+                val = text if text else None
+            elif isinstance(widget, QDateEdit):
+                 val = widget.date().toString("yyyy-MM-dd")
+            elif isinstance(widget, FilePickerWidget):
+                 text = widget.text().strip()
+                 val = text if text else None
+            elif isinstance(widget, FileTextWidget):
+                 val = widget.get_data()
+            elif isinstance(widget, RiskMatrixWidget):
+                 val = widget.get_data()
+            elif isinstance(widget, QComboBox):
+                val = widget.currentData()
+            
+            payload[key] = val
+            
+        # Common fields
+        payload["creado_por_usuario_id"] = "e13f156d-4bde-41fe-9dfa-9b5a5478d257"
+        return payload
+
+    def _build_eipd_payload(self):
+        # 1. Base fields
+        rat_id = None
+        w_rat = self.inputs.get("identificacion_rat_catalogo")
+        if w_rat and isinstance(w_rat, QComboBox):
+            rat_id = w_rat.currentData()
+
+        if not rat_id and self.asset_data:
+             rat_id = self.asset_data.get("rat_id")
+
+        payload = {
+            "rat_id": rat_id,
+            "creado_por": "e13f156d-4bde-41fe-9dfa-9b5a5478d257", # Hardcoded per original
+            "ambitos": [],
+            "riesgos": []
+        }
+
+        # 2. Ambitos (Flattened fields -> List)
+        # We process each known code
+        for ambito_name, ambito_code in AMBITO_CODES.items():
+            # Construct keys expected in the form
+            # e.g. licitud_group -> fields -> licitud_criterios
+            # We know the keys from the JSON config. 
+            # Pattern seems to be: {prefix}_criterios, {prefix}_resumen, etc.
+            
+            prefix = ambito_code.lower()
+            if prefix == "licitud": pass # Matches
+            elif prefix == "transparencia": pass # Matches
+            
+            # Correction: Config keys are slightly different from simple lower case code
+            # Let's map code to prefix manually to be safe, or direct lookup
+            
+            prefix_map = {
+                "LICITUD": "licitud",
+                "FINALIDAD": "finalidad",
+                "PROPORCIONABILIDAD": "proporcionabilidad",
+                "CALIDAD": "calidad",
+                "RESPONSABILIDAD": "responsabilidad",
+                "SEGURIDAD": "seguridad",
+                "TRANSPARENCIA": "transparencia",
+                "CONFIDENCIALIDAD": "confidencialidad",
+                "COORDINACION": "coordinacion"
+            }
+            
+            p = prefix_map.get(ambito_code)
+            if not p: continue
+
+            # Extract specific fields for this ambito
+            # We use _get_input_value helper
+            
+            ambito_obj = {
+                "ambito_codigo": ambito_code.lower(),
+                "criterios_evaluacion": self._get_input_value(f"{p}_criterios") or "",
+                "resumen": self._get_input_value(f"{p}_resumen") or "",
+                "probabilidad": self._get_input_value(f"{p}_probabilidad"), # combo ID?
+                "impacto": self._get_input_value(f"{p}_impacto"),
+                "nivel": "Bajo" # Calculated or just default? Backend requires string. 
+                # Note: 'nivel' is not clearly in the form inputs for ambitos, maybe calculate from prob/imp?
+                # For now let's send "Desconocido" or calc if needed. 
+                # Looking at Schema: nivel: str. 
+            }
+            
+            # Simple calc logic or just send what we have? 
+            # The form has prob/impact combos.
+            # Let's assume we send the ID from the combo which are strings like "limitado", "maximo".
+            
+            # TODO: Should we calculate 'nivel'? Schema implies it's required.
+            # Let's simple-calc valid for now.
+            ambito_obj["nivel"] = self._calculate_risk_level(ambito_obj["probabilidad"], ambito_obj["impacto"])
+            
+            payload["ambitos"].append(ambito_obj)
+
+        # 3. Riesgos (Risk Matrix)
+        w_matrix = self.inputs.get("matriz_riesgos")
+        if w_matrix and isinstance(w_matrix, RiskMatrixWidget):
+            matrix_data = w_matrix.get_data()
+            for row in matrix_data:
+                # row has: ambito (name), descripcion, ...
+                name = row.get("ambito")
+                code = AMBITO_CODES.get(name)
+                if not code: continue 
+                
+                riesgo_obj = {
+                    "ambito_codigo": code.lower(),
+                    "descripcion": row.get("descripcion") or "",
+                    "nivel_desarrollo": row.get("nivel_desarrollo") or "",
+                    "riesgo_transversal": row.get("riesgo_transversal") or "",
+                    "probabilidad": row.get("probabilidad") or "",
+                    "impacto": row.get("impacto") or "",
+                    "nivel_riesgo": row.get("nivel_riesgo") or ""
+                }
+                payload["riesgos"].append(riesgo_obj)
+
+        return payload
+
+    def _get_input_value(self, key):
+        widget = self.inputs.get(key)
+        if not widget: return None
+        
+        if isinstance(widget, QLineEdit):
+            return widget.text().strip()
+        elif isinstance(widget, (QTextEdit, QPlainTextEdit)):
+             return widget.toPlainText().strip()
+        elif isinstance(widget, QComboBox):
+             return widget.currentData() # ID
+        return None
+
+    def _calculate_risk_level(self, prob, imp):
+        # Placeholder logic
+        if not prob or not imp: return "Bajo"
+        return "Medio" # TODO: Real calculation logic if needed by business rule
+
     
     def resizeEvent(self, event):
         if hasattr(self, 'loading_overlay'):

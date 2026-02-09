@@ -426,8 +426,16 @@ class GenericGridView(QWidget):
         print(f"Error reloading: {error}")
 
     def _populate_table(self, response):
-        items = response["items"]
-        self.total_pages = response["pages"]
+        if not response:
+            items = []
+            self.total_pages = 1
+        elif isinstance(response, list):
+            items = response
+            self.total_pages = 1
+        else:
+            items = response.get("items", [])
+            self.total_pages = response.get("pages", 1)
+        
         self.table.setRowCount(len(items))
         
         columns = sorted(self.config["columnas"], key=lambda x: x.get("orden", 0))
@@ -464,6 +472,13 @@ class GenericGridView(QWidget):
         self.page_label.setText(f"Página {self.current_page} de {self.total_pages}")
 
     def _populate_indicators(self, data):
+        # Handle list response (take first item if list)
+        if isinstance(data, list):
+            if len(data) > 0:
+                data = data[0]
+            else:
+                data = {}
+                
         for ind_config in self.config.get("indicadores", []):
             field = ind_config["campo_api"]
             label = self.indicators_ui.get(field)

@@ -31,7 +31,7 @@ class EipdDialog(GenericFormDialog):
         base_dir = Path(__file__).resolve().parent.parent.parent
         config_path = base_dir / "src" / "config" / "formularios" / "eipd.json"
 
-        target_id = eipd_id or kwargs.get("id")
+        target_id = eipd_id or kwargs.get("id") or kwargs.get("record_id")
 
         super().__init__(str(config_path), parent=parent, record_id=target_id)
 
