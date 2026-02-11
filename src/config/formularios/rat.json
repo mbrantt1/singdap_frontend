@@ -70,7 +70,7 @@
                     "description": "Seleccione la unidad responsable.",
                     "type": "combo",
                     "source": "/setup/subsecretarias",
-                    "cache_key": "catalogo_subsecretarias",
+                    "cache_key": "catalogo_subsecretarias_v2",
                     "triggers_reload": [
                         "division"
                     ],
@@ -81,14 +81,21 @@
                     "label": "División",
                     "description": "División organizacional a la cual se adscribe el responsable.",
                     "type": "combo",
+                    "cache_key": "catalogo_divisiones_v2",
                     "depends_on": "subsecretaria",
                     "dependency_endpoint_template": "/setup/divisiones?subsecretaria_id={value}",
+                    "triggers_reload": [
+                        "departamento"
+                    ],
                     "required": true
                 },
                 {
                     "key": "departamento",
                     "label": "Departamento",
-                    "type": "text",
+                    "type": "combo",
+                    "cache_key": "catalogo_departamentos_v2",
+                    "depends_on": "division",
+                    "dependency_endpoint_template": "/setup/departamentos?division_id={value}",
                     "required": true
                 },
                 {
