@@ -1,4 +1,6 @@
-print("Starting main.py...")
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
 import sys
 print("Importing PySide6...")
 from PySide6.QtWidgets import QApplication
