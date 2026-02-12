@@ -8,7 +8,6 @@ from PySide6.QtCore import Signal
 
 from src.views.sidebar import Sidebar
 from src.views.activos.activos_view import ActivosView
-from src.views.mantenedores.mantenedores_view import MantenedoresView
 from src.views.usuarios.usuarios_view import UsuariosView
 from src.views.eipd.eipd_view import EipdView
 from src.views.rat.rat_view import RatView
@@ -42,7 +41,6 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
 
         self.activos_view = ActivosView()
-        self.mantenedores_view = MantenedoresView()
         self.usuarios_view = UsuariosView()
         self.eipd_view = EipdView()
         self.rat_view = RatView()
@@ -50,11 +48,10 @@ class MainWindow(QMainWindow):
 
         # Stack indexes
         self.stack.addWidget(self.activos_view)        # 0
-        self.stack.addWidget(self.mantenedores_view)   # 1
+        self.stack.addWidget(self.eipd_view)           # 1
         self.stack.addWidget(self.usuarios_view)       # 2
-        self.stack.addWidget(self.eipd_view)           # 3
-        self.stack.addWidget(self.rat_view)            # 4
-        self.stack.addWidget(self.trazabilidad_view)   # 5
+        self.stack.addWidget(self.rat_view)            # 3
+        self.stack.addWidget(self.trazabilidad_view)   # 4
 
         # ===============================
         # Layout
@@ -75,28 +72,24 @@ class MainWindow(QMainWindow):
             lambda: self._navigate(0, 0)
         )
 
-        self.sidebar.btn_mantenedores.clicked.connect(
+        # EIPD (sidebar index 1)
+        self.sidebar.btn_eipd.clicked.connect(
             lambda: self._navigate(1, 1)
         )
 
-        # EIPD (sidebar index 2)
-        self.sidebar.btn_eipd.clicked.connect(
-            lambda: self._navigate(3, 2)
-        )
-
-        # Usuarios / Roles (sidebar index 3)
+        # Usuarios / Roles (sidebar index 2)
         self.sidebar.btn_roles.clicked.connect(
-            lambda: self._navigate(2, 3)
+            lambda: self._navigate(2, 2)
         )
 
-        # RAT (sidebar index 4)
+        # RAT (sidebar index 3)
         self.sidebar.btn_rat.clicked.connect(
-            lambda: self._navigate(4, 4)
+            lambda: self._navigate(3, 3)
         )
 
-        # Trazabilidad (sidebar index 5)
+        # Trazabilidad (sidebar index 4)
         self.sidebar.btn_trazabilidad.clicked.connect(
-            lambda: self._navigate(5, 5)
+            lambda: self._navigate(4, 4)
         )
 
         # ===============================

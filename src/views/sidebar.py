@@ -81,11 +81,6 @@ class Sidebar(QWidget):
             active=True,
         )
 
-        self.btn_mantenedores = self._nav_button(
-            "Mantenedores",
-            "src/resources/icons/maintainers.svg",
-        )
-
         self.btn_eipd = self._nav_button(
             "EIPD (Ex PIA)",
             "src/resources/icons/shield.svg",
@@ -108,7 +103,6 @@ class Sidebar(QWidget):
 
         self.nav_buttons = [
             self.btn_inventario,
-            self.btn_mantenedores,
             self.btn_eipd,
             self.btn_roles,
             self.btn_rat,
