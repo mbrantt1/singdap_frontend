@@ -121,8 +121,22 @@
                     "label": "División",
                     "description": "División organizacional a la cual se adscribe el responsable.",
                     "type": "combo",
+                    "cache_key": "catalogo_divisiones_v2",
                     "depends_on": "subsecretaria_id",
                     "dependency_endpoint_template": "/setup/divisiones?subsecretaria_id={value}",
+                    "triggers_reload": [
+                        "departamento_id"
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "departamento_id",
+                    "label": "Departamento",
+                    "description": "Departamento perteneciente a la división.",
+                    "type": "combo",
+                    "cache_key": "catalogo_departamentos_v2",
+                    "depends_on": "division_id",
+                    "dependency_endpoint_template": "/setup/departamentos?division_id={value}",
                     "required": true
                 }
             ]
