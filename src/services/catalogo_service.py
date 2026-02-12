@@ -22,3 +22,7 @@ class CatalogoService:
 
     def clear_cache(self):
         self.cache.clear()
+
+    def invalidate_cache_key(self, cache_key):
+        if cache_key:
+            self.cache.remove(cache_key)

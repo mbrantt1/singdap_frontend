@@ -8,6 +8,8 @@ import json
 from src.core.api_client import ApiClient
 
 class RatDialog(GenericFormDialog):
+    RAT_CATALOGO_CACHE_KEY = "catalogo_rat_id"
+
     def __init__(self, parent=None, rat_id=None, **kwargs):
         # 1. CONFIGURACIÓN DE RUTAS
         base_dir = Path(__file__).resolve().parent.parent.parent
@@ -231,6 +233,8 @@ class RatDialog(GenericFormDialog):
             {"estado": "ENVIADO"}
 )
 
+            self._invalidate_rat_catalog_cache()
+
             QApplication.restoreOverrideCursor()
 
             QMessageBox.information(
@@ -250,6 +254,7 @@ class RatDialog(GenericFormDialog):
             f"/rat/{self.record_id}/estado",
             {"estado": "APROBADO"}
         )
+        self._invalidate_rat_catalog_cache()
         QMessageBox.information(self, "RAT aprobado", "El RAT fue aprobado.")
         self.accept()
         
@@ -270,6 +275,7 @@ class RatDialog(GenericFormDialog):
                     "comentario": comentario
                 }
             )
+            self._invalidate_rat_catalog_cache()
             QMessageBox.information(self, "RAT rechazado", "El RAT fue rechazado.")
             self.accept()
 
@@ -399,6 +405,7 @@ class RatDialog(GenericFormDialog):
                     self._save_riesgos(form_data)
                     self._save_conclusion(form_data)
 
+            self._invalidate_rat_catalog_cache()
             QApplication.restoreOverrideCursor()
             QMessageBox.information(self, "Éxito", "Guardado correctamente.")
             self.accept()
@@ -410,6 +417,9 @@ class RatDialog(GenericFormDialog):
             msg = str(e)
             if "422" in msg: msg = "Faltan campos obligatorios o el formato es incorrecto."
             QMessageBox.critical(self, "Error", f"No se pudo guardar:\n{msg}")
+
+    def _invalidate_rat_catalog_cache(self):
+        self.catalogo_service.invalidate_cache_key(self.RAT_CATALOGO_CACHE_KEY)
 
     # --- Helpers Guardado ---
     def _save_gobierno_datos(self, data):

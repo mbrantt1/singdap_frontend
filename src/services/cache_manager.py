@@ -64,3 +64,10 @@ class CacheManager:
         with QMutexLocker(self.mutex):
             if os.path.exists(self.cache_file):
                 os.remove(self.cache_file)
+
+    def remove(self, key):
+        with QMutexLocker(self.mutex):
+            cache = self._load_cache()
+            if key in cache:
+                del cache[key]
+                self._save_cache(cache)
