@@ -1,18 +1,15 @@
 from PySide6.QtWidgets import (
-    QWidget,
-    QTableWidget,
-    QTableWidgetItem,
-    QComboBox,
-    QTextEdit,
-    QVBoxLayout
+    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
+    QHeaderView, QTextEdit, QComboBox, QMessageBox, QLabel
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QColor, QBrush
 
 
 class RiskMatrixWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, read_only=False):
         super().__init__(parent)
-
+        self.read_only = read_only
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -29,19 +26,52 @@ class RiskMatrixWidget(QWidget):
 
         self.table.verticalHeader().setVisible(True)
         self.table.horizontalHeader().setStretchLastSection(True)
+        
+        # Connect click for description preview
+        self.table.itemClicked.connect(self._on_item_clicked)
 
         layout.addWidget(self.table)
+
+    def _on_item_clicked(self, item):
+        """Show full description in a dialog if the description column is clicked."""
+        if item.column() == 1: # Descripción column
+            text = item.text()
+            if text:
+                msg = QMessageBox(self)
+                msg.setWindowTitle("Descripción del Ámbito")
+                msg.setText(text)
+                msg.setIcon(QMessageBox.Information)
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: white;
+                    }
+                    QLabel {
+                        color: #1e293b;
+                        font-size: 14px;
+                    }
+                    QPushButton {
+                        background-color: #3b82f6;
+                        color: white;
+                        border-radius: 4px;
+                        padding: 6px 12px;
+                        font-weight: bold;
+                    }
+                """)
+                msg.exec()
 
     # --------------------------------------------------
     # Precargar los 9 ámbitos (desde EIPD)
     # --------------------------------------------------
-    def preload_ambitos(self, ambitos: list[str]):
+    def preload_ambitos(self, ambitos: list[str], descriptions: dict = None):
         self.table.setRowCount(len(ambitos))
+        descriptions = descriptions or {}
         
         # UI Tweak: Stylesheet for Table
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: white;
+                color: #1e293b;
                 gridline-color: #e2e8f0;
                 border: 1px solid #cbd5e1;
                 border-radius: 8px;
@@ -65,77 +95,189 @@ class RiskMatrixWidget(QWidget):
         """)
 
         # Dimensions
-        row_height = 70
+        row_height = 60 # Reduced back to standard height
         header_height = self.table.horizontalHeader().height() if self.table.horizontalHeader().height() > 0 else 40
-        total_height = (row_height * len(ambitos)) + header_height + 20 # +20 buffer
+        total_height = (row_height * len(ambitos)) + header_height + 40 
         self.table.setMinimumHeight(total_height)
         
         self.table.verticalHeader().setDefaultSectionSize(row_height) 
-        self.table.setWordWrap(True)
+        self.table.setWordWrap(False) # Disable word wrap for cleaner look, use elide
         
         # Column Widths
-        # 0: Ambito, 1: Desc, 2: Nivel, 3: Riesgo, 4: Prob, 5: Imp, 6: Nivel Riesgo
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, header.ResizeMode.ResizeToContents) 
         header.setSectionResizeMode(1, header.ResizeMode.Stretch) # Description takes space
         header.setSectionResizeMode(3, header.ResizeMode.Stretch) # Risk takes space
         
-        # Fixed widths for combos/status
+        # Fixed widths
         self.table.setColumnWidth(2, 140) # Nivel desarrollo
         self.table.setColumnWidth(4, 130) # Prob
         self.table.setColumnWidth(5, 130) # Impacto
-        self.table.setColumnWidth(6, 140) # Nivel Riesgo - Wider for "Muy Alto"
+        self.table.setColumnWidth(6, 140) # Nivel Riesgo
 
         for row, ambito in enumerate(ambitos):
-            item = QTableWidgetItem(ambito)
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-            # Center vertically
-            item.setTextAlignment(Qt.AlignTop | Qt.AlignLeft) 
-            self.table.setItem(row, 0, item)
+            # 0: Ámbito (Static Title)
+            item_ambito = QTableWidgetItem(ambito)
+            item_ambito.setFlags(item_ambito.flags() & ~Qt.ItemIsEditable)
+            item_ambito.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft) 
+            item_ambito.setFont(self._bold_font())
+            item_ambito.setForeground(QColor("#0f172a")) # Darker
+            self.table.setItem(row, 0, item_ambito)
 
-            # Descripción
-            desc_edit = QTextEdit()
-            desc_edit.setPlaceholderText("Describa la situación...")
-            desc_edit.setStyleSheet(self._input_style())
-            self.table.setCellWidget(row, 1, desc_edit)
+            # 1: Descripción (Static text from eipd.json)
+            desc_text = descriptions.get(ambito, "")
+            item_desc = QTableWidgetItem(desc_text)
+            item_desc.setFlags(item_desc.flags() & ~Qt.ItemIsEditable)
+            item_desc.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            item_desc.setForeground(QColor("#475569")) # Slate 600
+            item_desc.setToolTip("Haga clic para ver descripción completa")
+            self.table.setItem(row, 1, item_desc)
 
-            # Nivel desarrollo
+            # 2: Nivel desarrollo - ALWAYS INTERACTIVE (Not in Section 1)
             nivel_combo = QComboBox()
             nivel_combo.addItems(["Inicial", "Intermedio", "Avanzado"])
             nivel_combo.setStyleSheet(self._combo_style())
             self.table.setCellWidget(row, 2, nivel_combo)
 
-            # Riesgo transversal
+            # 3: Riesgo transversal - ALWAYS INTERACTIVE (Not in Section 1)
             riesgo_edit = QTextEdit()
             riesgo_edit.setPlaceholderText("Describa riesgos...")
-            riesgo_edit.setStyleSheet(self._input_style())
+            riesgo_edit.setStyleSheet(self._input_custom_style())
             self.table.setCellWidget(row, 3, riesgo_edit)
 
+            # 4: Probabilidad - SYNCED (Read-only if read_only=True)
+            if self.read_only:
+                item = QTableWidgetItem("...")
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setTextAlignment(Qt.AlignCenter)
+                item.setForeground(QColor("#1e293b"))
+                self.table.setItem(row, 4, item)
+            else:
+                prob_combo = QComboBox()
+                prob_combo.addItems(["Despreciable", "Limitado", "Significativo", "Máximo"])
+                prob_combo.setStyleSheet(self._combo_style())
+                self.table.setCellWidget(row, 4, prob_combo)
+
+            # 5: Impacto - SYNCED
+            if self.read_only:
+                item = QTableWidgetItem("...")
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setTextAlignment(Qt.AlignCenter)
+                item.setForeground(QColor("#1e293b"))
+                self.table.setItem(row, 5, item)
+            else:
+                impact_combo = QComboBox()
+                impact_combo.addItems(["Despreciable", "Limitado", "Significativo", "Máximo"])
+                impact_combo.setStyleSheet(self._combo_style())
+                self.table.setCellWidget(row, 5, impact_combo)
+
+            # 6: Nivel de riesgo - SYNCED
+            if self.read_only:
+                self._apply_risk_color(row, "Pendiente")
+            else:
+                riesgo_combo = QComboBox()
+                riesgo_combo.addItems(["Bajo", "Medio", "Alto", "Muy Alto"])
+                riesgo_combo.setStyleSheet(self._combo_style())
+                self.table.setCellWidget(row, 6, riesgo_combo)
+        
+
+    def update_row(self, row_index, data):
+        """Update a row with fresh data from Section 1."""
+        if row_index < 0 or row_index >= self.table.rowCount():
+            return
+
+        if self.read_only:
+            # Update items directly (textual summary)
             # Probabilidad
-            prob_combo = QComboBox()
-            prob_combo.addItems(["Despreciable", "Limitado", "Significativo", "Máximo"])
-            prob_combo.setStyleSheet(self._combo_style())
-            self.table.setCellWidget(row, 4, prob_combo)
+            val_prob = data.get("probabilidad") or "..."
+            item_prob = QTableWidgetItem(str(val_prob))
+            item_prob.setTextAlignment(Qt.AlignCenter)
+            item_prob.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item_prob.setForeground(QColor("#1e293b"))
+            self.table.setItem(row_index, 4, item_prob)
 
             # Impacto
-            impact_combo = QComboBox()
-            impact_combo.addItems(["Despreciable", "Limitado", "Significativo", "Máximo"])
-            impact_combo.setStyleSheet(self._combo_style())
-            self.table.setCellWidget(row, 5, impact_combo)
+            val_imp = data.get("impacto") or "..."
+            item_imp = QTableWidgetItem(str(val_imp))
+            item_imp.setTextAlignment(Qt.AlignCenter)
+            item_imp.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            item_imp.setForeground(QColor("#1e293b"))
+            self.table.setItem(row_index, 5, item_imp)
 
-            # Nivel de riesgo - Ahora editable
-            riesgo_combo = QComboBox()
-            riesgo_combo.addItems(["Bajo", "Medio", "Alto", "Muy Alto"])
-            riesgo_combo.setStyleSheet(self._combo_style())
-            self.table.setCellWidget(row, 6, riesgo_combo)
+            # Nivel Riesgo - Use the Label Widget via _apply_risk_color
+            val_risk = data.get("nivel_riesgo") or "Pendiente"
+            self._apply_risk_color(row_index, val_risk)
+            
+        else:
+            # Update widgets (standard editable mode)
+            # (Leaving original logic here for completeness)
+            widget_prob = self.table.cellWidget(row_index, 4)
+            if isinstance(widget_prob, QComboBox):
+                self._set_combo_text(widget_prob, data.get("probabilidad"))
 
-    def _input_style(self):
+            widget_imp = self.table.cellWidget(row_index, 5)
+            if isinstance(widget_imp, QComboBox):
+                self._set_combo_text(widget_imp, data.get("impacto"))
+
+            widget_risk = self.table.cellWidget(row_index, 6)
+            if isinstance(widget_risk, QComboBox):
+                self._set_combo_text(widget_risk, data.get("nivel_riesgo"))
+
+    def _apply_risk_color(self, row, level):
+        """Creates a styled QLabel for the risk level cell to ensure visibility on macOS."""
+        colors = {
+            "Bajo": "#22c55e", # Green
+            "Medio": "#eab308", # Yellow
+            "Alto": "#f97316", # Orange
+            "Muy Alto": "#ef4444" # Red
+        }
+        
+        bg_color = colors.get(level, "#ffffff")
+        text_color = "white" if level in colors else "#64748b"
+        border_color = bg_color if level in colors else "#e2e8f0"
+        
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(4, 4, 4, 4)
+        
+        lbl = QLabel(str(level))
+        lbl.setAlignment(Qt.AlignCenter)
+        lbl.setStyleSheet(f"""
+            QLabel {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 11px;
+                padding: 2px;
+            }}
+        """)
+        layout.addWidget(lbl)
+        self.table.setCellWidget(row, 6, container)
+
+    def _bold_font(self):
+        f = QFont()
+        f.setBold(True)
+        return f
+
+    def _read_only_style(self):
+        return """
+            QTextEdit {
+                border: 0px;
+                background-color: transparent;
+                color: #475569;
+            }
+        """
+
+    def _input_custom_style(self):
         return """
             QTextEdit {
                 border: 1px solid #e2e8f0;
                 border-radius: 4px;
                 padding: 4px;
                 background-color: #ffffff;
+                font-size: 12px;
             }
             QTextEdit:focus {
                 border: 1px solid #3b82f6;
