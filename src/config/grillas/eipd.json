@@ -13,17 +13,41 @@
     "columnas": [
         {
             "campo_api": "nombre_rat",
-            "etiqueta": "Nombre RAT",
+            "etiqueta": "Nombre",
             "visible": true,
             "ancho": null,
             "stretch": true,
             "orden": 1
         },
         {
+            "campo_api": "subsecretaria",
+            "etiqueta": "Subsecretaría",
+            "visible": true,
+            "ancho": 200,
+            "stretch": false,
+            "orden": 2
+        },
+        {
+            "campo_api": "division",
+            "etiqueta": "División",
+            "visible": true,
+            "ancho": 200,
+            "stretch": false,
+            "orden": 3
+        },
+        {
+            "campo_api": "riesgos_identificados",
+            "etiqueta": "Riesgos identificados",
+            "visible": true,
+            "ancho": 180,
+            "stretch": false,
+            "orden": 4
+        },
+        {
             "campo_api": "estado_eipd",
             "etiqueta": "Estado",
             "visible": true,
-            "ancho": 100,
+            "ancho": 120,
             "stretch": false,
             "orden": 5
         },
@@ -31,7 +55,7 @@
             "campo_api": "fecha_actualizacion",
             "etiqueta": "Fecha Actualización",
             "visible": true,
-            "ancho": 150,
+            "ancho": 180,
             "stretch": false,
             "orden": 6
         }

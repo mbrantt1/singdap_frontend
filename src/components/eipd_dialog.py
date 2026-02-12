@@ -15,18 +15,6 @@ from src.workers.api_worker import ApiWorker
 
 class EipdDialog(GenericFormDialog):
 
-    AMBITS = [
-        "Lícitud y Lealtad",
-        "Finalidad",
-        "Proporcionalidad",
-        "Calidad",
-        "Responsabilidad",
-        "Seguridad",
-        "Transparencia e Información",
-        "Confidencialidad",
-        "Coordinación",
-    ]
-
     def __init__(self, parent=None, eipd_id=None, **kwargs):
         base_dir = Path(__file__).resolve().parent.parent.parent
         config_path = base_dir / "src" / "config" / "formularios" / "eipd.json"
@@ -35,32 +23,8 @@ class EipdDialog(GenericFormDialog):
 
         super().__init__(str(config_path), parent=parent, record_id=target_id)
 
-        # Nivel en tiempo real (cuando el form ya existe)
-        QTimer.singleShot(0, self._bind_niveles_en_tiempo_real)
-
-    def _load_section(self, section_index: int):
-        super()._load_section(section_index)
-
-        # Sección 2 = Matriz de riesgos
-        if section_index == 2:
-            self._preload_matriz_riesgos()
-
-
-    # ------------------------------------------------------------------
-    # MATRIZ DE RIESGOS (PRECARGA)
-    # ------------------------------------------------------------------
-    def _preload_matriz_riesgos(self):
-        table = self.inputs.get("matriz_riesgos")
-
-        if not table:
-            return
-
-        table.setRowCount(len(self.AMBITS))
-
-        for row, ambito in enumerate(self.AMBITS):
-            item = QTableWidgetItem(ambito)
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-            table.setItem(row, 0, item)
+        # Nivel en tiempo real (Section 1 labels)
+        QTimer.singleShot(100, self._bind_niveles_en_tiempo_real)
 
     # ------------------------------------------------------------------
     # RAT integration
@@ -83,7 +47,7 @@ class EipdDialog(GenericFormDialog):
         worker.start()
 
     # ------------------------------------------------------------------
-    # NIVEL EN TIEMPO REAL (ÁMBITOS)
+    # NIVEL EN TIEMPO REAL (Section 1 Labels)
     # ------------------------------------------------------------------
     def _bind_niveles_en_tiempo_real(self):
         RISK_LEVEL_MATRIX = {
@@ -106,18 +70,18 @@ class EipdDialog(GenericFormDialog):
         }
 
         ambitos = [
-            ("licitud_probabilidad", "licitud_impacto"),
-            ("finalidad_probabilidad", "finalidad_impacto"),
-            ("proporcionabilidad_probabilidad", "proporcionabilidad_impacto"),
-            ("calidad_probabilidad", "calidad_impacto"),
-            ("responsabilidad_probabilidad", "responsabilidad_impacto"),
-            ("seguridad_probabilidad", "seguridad_impacto"),
-            ("transparencia_probabilidad", "transparencia_impacto"),
-            ("confidencialidad_probabilidad", "confidencialidad_impacto"),
-            ("coordinacion_probabilidad", "coordinacion_impacto"),
+            ("licitud_probabilidad", "licitud_impacto", "licitud"),
+            ("finalidad_probabilidad", "finalidad_impacto", "finalidad"),
+            ("proporcionabilidad_probabilidad", "proporcionabilidad_impacto", "proporcionabilidad"),
+            ("calidad_probabilidad", "calidad_impacto", "calidad"),
+            ("responsabilidad_probabilidad", "responsabilidad_impacto", "responsabilidad"),
+            ("seguridad_probabilidad", "seguridad_impacto", "seguridad"),
+            ("transparencia_probabilidad", "transparencia_impacto", "transparencia"),
+            ("confidencialidad_probabilidad", "confidencialidad_impacto", "confidencialidad"),
+            ("coordinacion_probabilidad", "coordinacion_impacto", "coordinacion"),
         ]
 
-        for prob_key, impact_key in ambitos:
+        for prob_key, impact_key, prefix in ambitos:
             prob = self.inputs.get(prob_key)
             impact = self.inputs.get(impact_key)
 
@@ -127,8 +91,9 @@ class EipdDialog(GenericFormDialog):
             nivel_label = QLabel("Nivel: -", self)
             nivel_label.setStyleSheet("""
                 QLabel {
-                    background-color: #e2e8f0;
-                    border-radius: 10px;
+                    background-color: #f1f5f9;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
                     padding: 4px 10px;
                     font-size: 12px;
                     font-weight: 600;
@@ -136,17 +101,21 @@ class EipdDialog(GenericFormDialog):
                 }
             """)
 
-            impact.parentWidget().layout().addWidget(nivel_label)
+            # Add to layout if not already there
+            if impact.parentWidget() and impact.parentWidget().layout():
+                impact.parentWidget().layout().addWidget(nivel_label)
 
-            def make_update(p, i, lbl):
+            def make_update(p, i, lbl, pref):
                 def update():
                     nivel = RISK_LEVEL_MATRIX.get(
-                        (p.currentText(), i.currentText()), "-"
+                        (p.currentText(), i.currentText()), "Bajo"
                     )
                     lbl.setText(f"Nivel: {nivel}")
+                    # Also trigger the matrix sync!
+                    self._sync_risk_matrix(pref)
                 return update
 
-            updater = make_update(prob, impact, nivel_label)
+            updater = make_update(prob, impact, nivel_label, prefix)
             prob.currentIndexChanged.connect(updater)
             impact.currentIndexChanged.connect(updater)
             updater()

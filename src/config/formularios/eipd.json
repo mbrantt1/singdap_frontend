@@ -115,6 +115,7 @@
           "key": "licitud_group",
           "type": "group",
           "label": "Lícitud y Lealtad",
+          "description": "Evalúa que el tratamiento de datos personales cuente con una base legal válida, específica y acreditable, y que se realice de manera justa y no engañosa respecto del titular, permitiendo al responsable demostrar su conformidad con la normativa vigente.",
           "fields": [
             {
               "key": "licitud_criterios",
@@ -182,6 +183,7 @@
           "key": "finalidad_group",
           "type": "group",
           "label": "Finalidad",
+          "description": "Evalúa que los datos personales sean recolectados con fines específicos, explícitos y lícitos, y que su tratamiento se limite estrictamente al cumplimiento de dichos fines, permitiendo únicamente usos compatibles o expresamente autorizados por la ley.",
           "fields": [
             {
               "key": "finalidad_criterios",
@@ -249,6 +251,7 @@
           "key": "proporcionabilidad_group",
           "type": "group",
           "label": "Proporcionabilidad",
+          "description": "Evalúa que los datos personales tratados sean estrictamente necesarios, adecuados y pertinentes para la finalidad, y que su conservación se limite al tiempo indispensable, asegurando su eliminación o anonimización una vez cumplido dicho propósito, salvo habilitación legal o consentimiento del titular.",
           "fields": [
             {
               "key": "proporcionabilidad_criterios",
@@ -316,6 +319,7 @@
           "key": "calidad_group",
           "type": "group",
           "label": "Calidad",
+          "description": "Evalúa que los datos personales tratados sean exactos, completos, actuales y pertinentes en relación con su origen y la finalidad del tratamiento, asegurando su confiabilidad para la toma de decisiones y la protección de los derechos de los titulares",
           "fields": [
             {
               "key": "calidad_criterios",
@@ -383,6 +387,7 @@
           "key": "responsabilidad_group",
           "type": "group",
           "label": "Responsabilidad",
+          "description": "Evalúa la capacidad del responsable del tratamiento para asumir, demostrar y sostener en el tiempo el cumplimiento de los principios, obligaciones y deberes establecidos en la normativa de protección de datos personales, mediante medidas organizacionales, técnicas y documentales.",
           "fields": [
             {
               "key": "responsabilidad_criterios",
@@ -450,6 +455,7 @@
           "key": "seguridad_group",
           "type": "group",
           "label": "Seguridad",
+          "description": "Evalúa que el responsable del tratamiento implemente medidas técnicas y organizacionales adecuadas y proporcionales para proteger los datos personales contra accesos no autorizados, pérdida, filtración, daño o destrucción, considerando la naturaleza de los datos y los riesgos asociados al tratamiento.",
           "fields": [
             {
               "key": "seguridad_criterios",
@@ -517,6 +523,7 @@
           "key": "transparencia_group",
           "type": "group",
           "label": "Transparencia e Información",
+          "description": "Evalúa que el responsable del tratamiento entregue al titular información suficiente, clara, precisa y permanentemente accesible sobre las políticas y prácticas de tratamiento de datos personales, facilitando de manera efectiva el ejercicio de los derechos que establece la ley",
           "fields": [
             {
               "key": "transparencia_criterios",
@@ -584,6 +591,7 @@
           "key": "confidencialidad_group",
           "type": "group",
           "label": "Confidencialidad",
+          "description": "Evalúa que el responsable del tratamiento implemente medidas adecuadas para asegurar el deber de secreto respecto de los datos personales, limitando su conocimiento a personas autorizadas y garantizando que dicha obligación subsista aun después de finalizada la relación con el titular.",
           "fields": [
             {
               "key": "confidencialidad_criterios",
@@ -651,6 +659,7 @@
           "key": "coordinacion_group",
           "type": "group",
           "label": "Coordinación",
+          "description": "Evalúa que los tratamientos de datos personales en organismos públicos se desarrollen de manera interoperable, coherente y eficiente, evitando contradicciones en la información y la reiteración innecesaria de requerimientos a los titulares, conforme a los principios de eficiencia y buena administración",
           "fields": [
             {
               "key": "coordinacion_criterios",
