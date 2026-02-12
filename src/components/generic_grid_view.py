@@ -246,7 +246,7 @@ class GenericGridView(QWidget):
             if col.get("stretch"):
                 header_view.setSectionResizeMode(i, QHeaderView.Stretch)
             elif col.get("ancho"):
-                header_view.setSectionResizeMode(i, QHeaderView.Fixed)
+                header_view.setSectionResizeMode(i, QHeaderView.Interactive)
                 self.table.setColumnWidth(i, col["ancho"])
                 
         if has_actions:
@@ -486,6 +486,11 @@ class GenericGridView(QWidget):
                 val = data.get(field, 0)
                 label.setText(str(val))
 
+    def _invalidate_rat_catalog_cache_if_needed(self):
+        # El catálogo de RAT se usa en EIPD; tras mutaciones en grilla RAT se debe refrescar.
+        if self.config.get("id") == "rat":
+            self.catalogo_service.invalidate_cache_key("catalogo_rat_id")
+
     # ======================================================
     # Actions
     # ======================================================
@@ -540,6 +545,7 @@ class GenericGridView(QWidget):
                     
                 dialog = DialogClass(self, **kwargs)
                 if dialog.exec():
+                    self._invalidate_rat_catalog_cache_if_needed()
                     self._reload_all()
             else:
                 print(f"Unknown dialog class: {dialog_class_name}")
@@ -719,6 +725,7 @@ class GenericGridView(QWidget):
                     raise Exception(response.get("message", "Error desconocido"))
 
                 LoggerService().log_event(f"Usuario eliminó registro ID: {record_id} en {self.config['id']}")
+                self._invalidate_rat_catalog_cache_if_needed()
                 self._reload_all()
                 
             except Exception as e:
@@ -746,6 +753,7 @@ class GenericGridView(QWidget):
             # New mode usually implies no ID argument
             dialog = DialogClass(self)
             if dialog.exec():
+                self._invalidate_rat_catalog_cache_if_needed()
                 self._reload_all()
 
     # ======================================================
@@ -897,6 +905,7 @@ class GenericGridView(QWidget):
                 self.api.delete(endpoint)
                 
                 LoggerService().log_event(f"Usuario eliminó registro ID: {record_id} en {self.config['id']}")
+                self._invalidate_rat_catalog_cache_if_needed()
                 self._reload_all()
             except Exception as e:
                 LoggerService().log_error(f"Error eliminando ID: {record_id}", e)
@@ -917,6 +926,7 @@ class GenericGridView(QWidget):
             # Modo creación generalmente no implica argumento ID
             dialog = DialogClass(self)
             if dialog.exec():
+                self._invalidate_rat_catalog_cache_if_needed()
                 self._reload_all()
 
     def _execute_action(self, action_config, record_id):
@@ -939,6 +949,7 @@ class GenericGridView(QWidget):
                     
                 dialog = DialogClass(self, **kwargs)
                 if dialog.exec():
+                    self._invalidate_rat_catalog_cache_if_needed()
                     self._reload_all()
             else:
                 print(f"Unknown dialog class: {dialog_class_name}")

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QWidget, QStackedWidget,
     QLabel, QPushButton, QFrame, QScrollArea, QLineEdit, 
     QComboBox, QFormLayout, QProgressBar, QDateEdit, QFileDialog, 
-    QTextEdit, QPlainTextEdit, QApplication
+    QTextEdit, QPlainTextEdit, QApplication, QSizePolicy
 )
 from PySide6.QtCore import Qt, QTimer, QThreadPool, QDate
 
@@ -22,7 +22,7 @@ from src.services.logger_service import LoggerService
 from src.components.custom_inputs import CheckableComboBox
 
 EIPD_AMBITOS = [
-    "Licitud y Lealtad",
+    "Lícitud y Lealtad",
     "Finalidad",
     "Proporcionabilidad",
     "Calidad",
@@ -34,7 +34,7 @@ EIPD_AMBITOS = [
 ]
 
 AMBITO_CODES = {
-    "Licitud y Lealtad": "LICITUD",
+    "Lícitud y Lealtad": "LICITUD",
     "Finalidad": "FINALIDAD",
     "Proporcionabilidad": "PROPORCIONABILIDAD",
     "Calidad": "CALIDAD",
@@ -343,15 +343,33 @@ class GenericFormDialog(QDialog):
                 line.setStyleSheet("background-color: #e2e8f0; margin-bottom: 8px;")
                 v.addWidget(line)
 
+                # Sub-layout for title and description to control spacing specifically
+                title_desc_box = QVBoxLayout()
+                title_desc_box.setSpacing(2) 
+                title_desc_box.setContentsMargins(0, 0, 0, 0)
+
                 header_layout = QHBoxLayout()
-                header_layout.setContentsMargins(0, 0, 0, 0) # No extra margin for header either
+                header_layout.setContentsMargins(0, 0, 0, 0)
 
                 title = QLabel(field.get("label", ""))
                 title.setStyleSheet("font-size: 16px; font-weight: bold; color: #0f172a;")
 
                 header_layout.addWidget(title)
                 header_layout.addStretch()
-                v.addLayout(header_layout)
+                title_desc_box.addLayout(header_layout)
+
+                # Description for group
+                group_desc = field.get("description", "")
+                if group_desc:
+                    desc_lbl = QLabel(group_desc)
+                    # Removing negative margins as they often cause truncation in layout calculations
+                    desc_lbl.setStyleSheet("font-size: 13px; color: #64748b; margin-bottom: 4px;")
+                    desc_lbl.setWordWrap(True)
+                    # Essential for labels in scroll areas to ensure they calculate height correctly
+                    desc_lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
+                    title_desc_box.addWidget(desc_lbl)
+                
+                v.addLayout(title_desc_box)
 
                 # ---- construir subformularios ----
                 for subfield in field.get("fields", []):
@@ -417,13 +435,45 @@ class GenericFormDialog(QDialog):
             if "depends_on" in field:
                 self.dependency_configs[key] = field
 
-            # Validation
+            # Navigation & Validation
             if isinstance(widget, QLineEdit):
+                widget.textChanged.connect(self._validate_steps_progress)
+            elif isinstance(widget, QPlainTextEdit):
                 widget.textChanged.connect(self._validate_steps_progress)
             elif isinstance(widget, CheckableComboBox):
                 widget.selectionChanged.connect(self._validate_steps_progress)
             elif isinstance(widget, QComboBox):
                 widget.currentIndexChanged.connect(self._validate_steps_progress)
+
+            # EIPD Sync Logic
+            # If field key belongs to one of the 9 ambitos, monitor its changes
+            for p in [c.lower() for c in EIPD_AMBITOS]:
+                # Normalize prefix (e.g. "Licitud y Lealtad" -> "licitud")
+                # Wait, EIPD_AMBITOS are full names. The keys use prefixes like "licitud"
+                pass
+            
+            # Use AMBITO_CODES keys (full names) and map to prefixes
+            prefix_map = {
+                "Lícitud y Lealtad": "licitud",
+                "Finalidad": "finalidad",
+                "Proporcionabilidad": "proporcionabilidad",
+                "Calidad": "calidad",
+                "Responsabilidad": "responsabilidad",
+                "Seguridad": "seguridad",
+                "Transparencia e Información": "transparencia",
+                "Confidencialidad": "confidencialidad",
+                "Coordinación": "coordinacion"
+            }
+
+            for ambito_full, prefix in prefix_map.items():
+                if key.startswith(f"{prefix}_"):
+                    if isinstance(widget, (QComboBox, QTextEdit, QPlainTextEdit)):
+                        # Connect to sync method
+                        # We use lambda to pass the prefix
+                        if isinstance(widget, (QTextEdit, QPlainTextEdit)):
+                             widget.textChanged.connect(lambda p=prefix: self._sync_risk_matrix(p))
+                        else:
+                             widget.currentIndexChanged.connect(lambda *args, p=prefix: self._sync_risk_matrix(p))
 
             block_layout.addWidget(widget)
             layout.addWidget(field_block)
@@ -581,8 +631,28 @@ class GenericFormDialog(QDialog):
              return FileTextWidget()
          
         elif ftype == "risk_matrix":
-            w = RiskMatrixWidget()
-            w.preload_ambitos(EIPD_AMBITOS)
+            # For EIPD, the user specifically asked for this to be read-only summary
+            is_read_only = field.get("read_only", False)
+            # Default to True for EIPD if it's the matriz_riesgos key
+            if field.get("key") == "matriz_riesgos":
+                is_read_only = True
+                
+            w = RiskMatrixWidget(read_only=is_read_only)
+            
+            # Extract descriptions from Section 1 groups for pre-population
+            descriptions = {}
+            for section in self.config.get("sections", []):
+                for f in section.get("fields", []):
+                    if f.get("type") == "group" and f.get("label") and f.get("description"):
+                        descriptions[f["label"]] = f["description"]
+            
+            w.preload_ambitos(EIPD_AMBITOS, descriptions=descriptions)
+            
+            # Initial sync from existing data in Section 1
+            prefixes = ["licitud", "finalidad", "proporcionabilidad", "calidad", "responsabilidad", "seguridad", "transparencia", "confidencialidad", "coordinacion"]
+            for p in prefixes:
+                QTimer.singleShot(100, lambda p=p: self._sync_risk_matrix(p))
+                
             return w
     
         return QLineEdit()
@@ -796,7 +866,9 @@ class GenericFormDialog(QDialog):
         # For simplicity in this generic version, we just try to set everything.
         # If a combo depends on another, setting the parent might trigger the load.
         
-        for key, widget in self.inputs.items():
+        # Use a snapshot to avoid "dictionary changed size during iteration"
+        # when signal handlers trigger re-entrant updates.
+        for key, widget in list(self.inputs.items()):
             value = self.asset_data.get(key)
             if value is None: continue
             
@@ -950,10 +1022,12 @@ class GenericFormDialog(QDialog):
     # ===============================
     # Dependency Logic
     # ===============================
-    def _on_trigger_changed(self, trigger_key, index):
+    def _on_trigger_changed(self, trigger_key, index=None):
         # Trigger key changed. Find dependents.
         dependents = self.dependencies.get(trigger_key, [])
-        trigger_widget = self.inputs[trigger_key]
+        trigger_widget = self.inputs.get(trigger_key)
+        if not trigger_widget: return
+        
         trigger_val = trigger_widget.currentData()
         
         for dep_key in dependents:
@@ -961,29 +1035,41 @@ class GenericFormDialog(QDialog):
             if not dep_config: continue
             
             dep_widget = self.inputs.get(dep_key)
+            if not dep_widget: continue
+
+            # If trigger is empty, clear dependent and skip load
+            if not trigger_val:
+                dep_widget.clear()
+                if isinstance(dep_widget, QComboBox) and not dep_widget.isEditable():
+                     dep_widget.setCurrentIndex(-1)
+                continue
             
             # Load dependency
             # Template: /setup/divisiones?subsecretaria_id={value}
             template = dep_config.get("dependency_endpoint_template")
             if template:
-                url = template.replace("{value}", str(trigger_val) if trigger_val else "")
+                url = template.replace("{value}", str(trigger_val))
+                cache_key = dep_config.get("cache_key")
                 
-                # We need to run this async too preferably, but let's do simple worker
-                self._load_dependent_combo(dep_widget, url)
+                # If we have a cache key, make it specific to this parameter value
+                if cache_key:
+                    cache_key = f"{cache_key}_{str(trigger_val)}"
+                
+                self._load_dependent_combo(dep_widget, url, cache_key)
 
-    def _load_dependent_combo(self, combo, url):
+    def _load_dependent_combo(self, combo, url, cache_key=None):
         # Create a worker just for this
-        # We don't block UI with overlay for this small interaction usually, 
-        # or maybe we should? For now, let's just load.
-        
         combo.clear()
         
-        def fetch():
-            return self.api.get(url)
-            
-        worker = ApiWorker(fetch, parent=self)
-        worker.finished.connect(lambda data: self._on_dependent_data(combo, data))
-        worker.start()
+        # Use CatalogoService to leverage cache if available
+        worker = ComboLoaderRunnable(self.catalogo_service.get_catalogo, url, cache_key)
+        self._active_runnables.append(worker)
+        
+        worker.signals.result.connect(partial(self._on_dependent_data, combo))
+        worker.signals.error.connect(self._on_load_error)
+        # We don't increment pending_loads for dynamic reloads to avoid showing the overlay
+        # but we do want to cleanup
+        self.thread_pool.start(worker)
 
     def _on_dependent_data(self, combo, data):
         combo.clear()
@@ -1227,6 +1313,52 @@ class GenericFormDialog(QDialog):
 
         return payload
 
+    def _sync_risk_matrix(self, prefix):
+        """Synchronizes a row in the Risk Matrix with data from the Ámbitos section."""
+        w_matrix = self.inputs.get("matriz_riesgos")
+        if not w_matrix or not hasattr(w_matrix, "update_row"):
+            return
+
+        prefix_to_full = {
+            "licitud": "Lícitud y Lealtad",
+            "finalidad": "Finalidad",
+            "proporcionabilidad": "Proporcionabilidad",
+            "calidad": "Calidad",
+            "responsabilidad": "Responsabilidad",
+            "seguridad": "Seguridad",
+            "transparencia": "Transparencia e Información",
+            "confidencialidad": "Confidencialidad",
+            "coordinacion": "Coordinación"
+        }
+        
+        full_name = prefix_to_full.get(prefix)
+        if not full_name: return
+        
+        try:
+            row_index = EIPD_AMBITOS.index(full_name)
+        except ValueError:
+            return
+
+        # Get Widgets
+        w_resumen = self.inputs.get(f"{prefix}_resumen")
+        w_prob = self.inputs.get(f"{prefix}_probabilidad")
+        w_imp = self.inputs.get(f"{prefix}_impacto")
+
+        # Extract values for the table (text) and calculation (data/ID)
+        data = {
+            "resumen": w_resumen.toPlainText().strip() if hasattr(w_resumen, "toPlainText") else "",
+            "probabilidad": w_prob.currentText() if isinstance(w_prob, QComboBox) else "",
+            "impacto": w_imp.currentText() if isinstance(w_imp, QComboBox) else "",
+        }
+        
+        prob_id = w_prob.currentData() if isinstance(w_prob, QComboBox) else None
+        imp_id = w_imp.currentData() if isinstance(w_imp, QComboBox) else None
+        
+        data["nivel_riesgo"] = self._calculate_risk_level(prob_id, imp_id)
+        
+        # Update Row
+        w_matrix.update_row(row_index, data)
+
     def _get_input_value(self, key):
         widget = self.inputs.get(key)
         if not widget: return None
@@ -1240,9 +1372,24 @@ class GenericFormDialog(QDialog):
         return None
 
     def _calculate_risk_level(self, prob, imp):
-        # Placeholder logic
+        """Calculates risk level (Bajo, Medio, Alto, Muy Alto) based on probability and impact."""
         if not prob or not imp: return "Bajo"
-        return "Medio" # TODO: Real calculation logic if needed by business rule
+        
+        score_map = {
+            "despreciable": 1,
+            "limitado": 2,
+            "significativo": 3,
+            "maximo": 4
+        }
+        
+        p_val = score_map.get(str(prob).lower(), 0)
+        i_val = score_map.get(str(imp).lower(), 0)
+        
+        score = p_val * i_val
+        if score <= 1: return "Bajo"
+        if score <= 4: return "Medio"
+        if score <= 9: return "Alto"
+        return "Muy Alto"
 
     
     def resizeEvent(self, event):

@@ -329,7 +329,7 @@ class TrazabilidadView(QWidget):
                     background-color: #2563eb;
                 }
             """)
-            btn_detail.clicked.connect(lambda checked=False, data=row_data.get("response_payload"): self.show_detail(data))
+            btn_detail.clicked.connect(lambda checked=False, row=row_data: self.show_detail(row))
             btn_layout.addWidget(btn_detail)
             
             self.grid.setCellWidget(i, 4, btn_container)
@@ -355,6 +355,7 @@ class TrazabilidadView(QWidget):
     def handle_validation_error(self, message):
         QMessageBox.warning(self, "Validación", message)
 
-    def show_detail(self, data):
-        dialog = ApiDetailDialog(data, parent=self)
+    def show_detail(self, row_data):
+        api_name = row_data.get("api_nombre", "Detalle de API") if isinstance(row_data, dict) else "Detalle de API"
+        dialog = ApiDetailDialog(row_data, title=api_name, parent=self)
         dialog.exec()
