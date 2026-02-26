@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QFrame
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from src.viewmodels.login_viewmodel import LoginViewModel
 from src.views.main_window import MainWindow
@@ -69,10 +69,12 @@ class LoginView(QWidget):
         # ===============================
         self.user_input = QLineEdit()
         self.user_input.setPlaceholderText("Rut")
+        self._set_input_colors(self.user_input)
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Contraseña")
         self.password_input.setEchoMode(QLineEdit.Password)
+        self._set_input_colors(self.password_input)
 
         # ===============================
         # Buttons
@@ -220,6 +222,12 @@ class LoginView(QWidget):
     # ===============================
     # Helpers
     # ===============================
+
+    def _set_input_colors(self, input_widget: QLineEdit):
+        palette = input_widget.palette()
+        palette.setColor(QPalette.Text, QColor("#111827"))
+        palette.setColor(QPalette.PlaceholderText, QColor("#6b7280"))
+        input_widget.setPalette(palette)
 
     def _set_error(self, message: str):
         self.status_label.setObjectName("error")
