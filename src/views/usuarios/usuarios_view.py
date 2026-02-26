@@ -20,6 +20,7 @@ from PySide6.QtCore import Qt
 
 from src.components.loading_overlay import LoadingOverlay
 from src.core.api_client import ApiClient
+from src.services.cache_manager import CacheManager
 from src.services.user_service import UserService
 from src.workers.api_worker import ApiWorker
 
@@ -30,6 +31,9 @@ class UsuariosView(QWidget):
         self.loading_overlay = LoadingOverlay(self)
         self.api = ApiClient()
         self.user_service = UserService()
+        self.cache_manager = CacheManager()
+        self.permissions_cache_key = "usuarios_permissions_mock_v1"
+        self.permissions_overrides = {}
 
         self.current_user_index = 0
         self.status_toggle_worker = None
@@ -256,6 +260,7 @@ class UsuariosView(QWidget):
             "permissions_update_api_available", False
         )
         self.privilege_name_by_code = data.get("privilege_name_by_code", {})
+        self.permissions_overrides = self._load_permissions_overrides()
 
         if not self.users_data:
             self.users_data = [
@@ -271,6 +276,9 @@ class UsuariosView(QWidget):
                     },
                 }
             ]
+        else:
+            for user in self.users_data:
+                self._apply_permissions_override(user)
 
         self.current_user_index = 0
         self._populate_user_list()
@@ -547,41 +555,72 @@ class UsuariosView(QWidget):
     def _on_permission_cell_clicked(self, row, col):
         if col == 0:
             return
-        if not self.api.is_admin:
+        if not self.users_data:
             return
-        if not self.permissions_update_api_available:
-            if not self.warned_missing_update_api:
-                self.warned_missing_update_api = True
-                QMessageBox.information(
-                    self,
-                    "Usuarios / Roles",
-                    "No existe API backend para actualizar permisos por usuario/pantalla.\n"
-                    "Se requiere endpoint para activar/desactivar VER, CREAR y EDITAR.",
-                )
+        if self.current_user_index < 0 or self.current_user_index >= len(self.users_data):
             return
 
-        current = self.table.item(row, col)
-        enabled = bool(current and current.text() == "✓")
-        self._set_permission_value(row, col, not enabled)
+        user = self.users_data[self.current_user_index]
+        module_key = self.modules[row][1]
+        current_permissions = list(
+            user["permissions"].get(module_key, (False, False, False, False, False))
+        )
+        perm_idx = col - 1
+        if perm_idx < 0 or perm_idx >= len(current_permissions):
+            return
+
+        current_permissions[perm_idx] = not current_permissions[perm_idx]
+        updated = tuple(current_permissions)
+        user["permissions"][module_key] = updated
+        self._set_permission_value(row, col, updated[perm_idx])
+        self._persist_user_permissions_override(user)
 
     def _update_edit_hint(self):
-        if not self.api.is_admin:
-            self.matrix_edit_hint.setText("Solo administradores pueden modificar permisos.")
+        self.matrix_edit_hint.setText(
+            "Modo mockup: haz clic en una celda para activar/desactivar permisos. "
+            "Los cambios se guardan en cache local."
+        )
+
+    def _load_permissions_overrides(self):
+        cached = self.cache_manager.get(self.permissions_cache_key)
+        return cached if isinstance(cached, dict) else {}
+
+    def _persist_user_permissions_override(self, user):
+        user_cache_id = self._user_cache_id(user)
+        if not user_cache_id:
             return
 
-        if not self.list_users_api_available:
-            self.matrix_edit_hint.setText(
-                "API de listado de usuarios no disponible: se muestra solo el usuario autenticado."
-            )
+        permissions = user.get("permissions", {})
+        serialized = {}
+        for module_key, value in permissions.items():
+            bools = list(value)
+            while len(bools) < 5:
+                bools.append(False)
+            serialized[module_key] = [bool(v) for v in bools[:5]]
+
+        self.permissions_overrides[user_cache_id] = serialized
+        self.cache_manager.set(self.permissions_cache_key, self.permissions_overrides)
+
+    def _apply_permissions_override(self, user):
+        user_cache_id = self._user_cache_id(user)
+        if not user_cache_id:
             return
 
-        if not self.permissions_update_api_available:
-            self.matrix_edit_hint.setText(
-                "Edicion deshabilitada: falta endpoint backend para actualizar permisos por usuario."
-            )
+        override = self.permissions_overrides.get(user_cache_id)
+        if not isinstance(override, dict):
             return
 
-        self.matrix_edit_hint.setText("Haz clic en una celda para activar/desactivar permisos.")
+        for module_key, values in override.items():
+            if not isinstance(values, list):
+                continue
+            bools = [bool(v) for v in values[:5]]
+            while len(bools) < 5:
+                bools.append(False)
+            user["permissions"][module_key] = tuple(bools)
+
+    @staticmethod
+    def _user_cache_id(user):
+        return str(user.get("backend_id") or user.get("id") or "")
 
     def resizeEvent(self, event):
         if hasattr(self, "loading_overlay"):
